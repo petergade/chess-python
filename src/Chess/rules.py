@@ -3,6 +3,7 @@ from typing import Tuple, List
 from abc import ABC, abstractmethod
 import enum
 
+
 class Color(enum.Enum):
     WHITE = 0,
     BLACK = 1
@@ -27,7 +28,7 @@ class Move:
     files_to_cols = {"a": 0, "b": 1, "c": 2, "d": 3, "e": 4, "f": 5, "g": 6, "h": 7}
     cols_to_files = {v: k for k, v in files_to_cols.items()}
 
-    def __init__(self, from_square: Tuple[int, int], to_square: Tuple[int, int], board) -> None:
+    def __init__(self, from_square: Tuple[int, int], to_square: Tuple[int, int], board: List[List[Piece]]) -> None:
         self.from_row = from_square[0]
         self.from_col = from_square[1]
         self.to_row = to_square[0]
@@ -52,6 +53,22 @@ class Move:
     def get_rank_file(self, row: int, column: int) -> str:
         return self.cols_to_files[column] + self.rows_to_ranks[row]
 
+    @classmethod
+    def from_uci(cls, uci: str, board: List[List[Piece]]) -> Move:
+        if 4 <= len(uci) <= 5:
+            from_square = uci[0:2]
+            to_square = uci[2:4]
+            from_col = cls.files_to_cols[from_square[0]]
+            from_row = cls.ranks_to_rows[from_square[1]]
+            to_col = cls.files_to_cols[to_square[0]]
+            to_row = cls.ranks_to_rows[to_square[1]]
+
+            if from_square == to_square:
+                raise ValueError(f"invalid move")
+            return Move((from_row, from_col), (to_row, to_col), board)
+        else:
+            pass
+
 
 class Piece(ABC):
 
@@ -69,7 +86,7 @@ class Piece(ABC):
         self.color = color
 
     def __str__(self) -> str:
-        return f'{"w" if self.color == WHITE else "b"}{self.symbol}'
+        return f'{self.symbol}' if self.color == WHITE else f'.{self.symbol}.'
 
     @abstractmethod
     def generate_pseudo_legal_moves(self, r: int, c: int, board: List[List[Piece]]) -> List[Move]:
@@ -350,12 +367,12 @@ class ChessGame:
     krale a pokud ano, takovy tah vylouci. Pote vrati uz pouze seznam legalnich tahu
     '''
 
-    def get_legal_moves(self) -> List[Move]:
+    def generate_legal_moves(self) -> List[Move]:
         return self.generate_pseudo_legal_moves()
 
     '''
-    Metoda generuje vsechny mozne tahy hrace na tahu s tim, ze se nekontroluje, zda by se hrac na tahu nedostal do sachu.
-    Tuto kontrolu provadi az metoda get_legal_moves
+    Metoda generuje vsechny mozne tahy hrace na tahu s tim, ze se nekontroluje, zda by se hrac na tahu nedostal do 
+    sachu. Tuto kontrolu provadi az metoda get_legal_moves
     '''
 
     def generate_pseudo_legal_moves(self) -> List[Move]:
@@ -397,75 +414,7 @@ class ChessGame:
         self.print_square_colors(rank)
 
     def print_board(self) -> None:
-        for rank in range(self.board):
+        for rank in range(len(self.board)):
             self.print_rank(rank)
         print('  |-----|-----|-----|-----|-----|-----|-----|-----|')
         print('     A     B     C     D     E     F     G     H   ')
-
-
-class ConsoleGame:
-
-    # udelej tah (predej do dale do tridy Board)
-    def do_move(self, move):
-        if self.board.do_move(move):
-            self.moves.append(move)
-
-    # zobrazeni zaznamu partie
-    def print_all_moves(self):
-        for move, i in self.moves:
-            print('')
-
-    # prehravani partie po pultazich
-    def replay_game(self):
-        for move, i in self.moves:
-            print('')
-
-    # navrat do pozice po poslednim tahu
-    def go_to_latest_move(self):
-        pass
-
-    def start(self):
-        print('Game started')
-        chess_game = ChessGame()
-        self.board.print_board()
-        choice = ''
-
-        while choice != 'q':
-            self.display_main_menu()
-            choice = input("what would you like to do? ")
-
-            # Respond to the user's choice.
-            if choice == '1':
-                move_uci = input('Enter you move: ')
-                print(f'Your move is {move_uci}')
-                move = Move.from_uci(move_uci)
-                if move is None:
-                    # spatne zapsany tah
-                    pass
-                if not self.do_move(move, self.color_in_turn):
-                    # neplatny tah
-                    pass
-                self.board.print_board()
-            elif choice == '2':
-                print("\nI can't wait to meet this person!\n")
-            elif choice == '4':
-                legal_moves = self.board.generate_legal_moves(self.color_in_turn)
-                print(','.join(str(legal_move) for legal_move in legal_moves))
-            elif choice == 'q':
-                print("\nThanks for playing. Bye.")
-            else:
-                print("\nI didn't understand that choice.\n")
-
-    @staticmethod
-    def display_main_menu():
-        print('[1] - Input next move')
-        print('[2] - Display all moves already played')
-        print('[3] - Replay the game from the beginning')
-        print('[4] - Print legal moves')
-        print('[q] - Quit app')
-
-
-if __name__ == '__main__':
-    game = ConsoleGame()
-    game.start()
-    print('Program finished')
