@@ -54,8 +54,10 @@ def main() -> None:
                     if move in valid_moves:
                         game.make_move(move)
                         move_made = True
-                    sq_selected = ()
-                    player_clicks = []
+                        sq_selected = ()
+                        player_clicks = []
+                    else:
+                        player_clicks = [sq_selected]
         if move_made:
             valid_moves = game.generate_legal_moves()
             print('Possible moves: ' + ','.join(str(move) for move in valid_moves))
