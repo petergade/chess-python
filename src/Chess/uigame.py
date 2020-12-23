@@ -16,6 +16,32 @@ def load_images() -> None:
         IMAGES[piece] = p.image.load(f'images/{file_name_without_extension}.png')
 
 
+def show_result(result: str, screen: p.Surface) -> None:
+    # create a font object.
+    # 1st parameter is the font file
+    # which is present in pygame.
+    # 2nd parameter is size of the font
+    font = p.font.Font('freesansbold.ttf', 48)
+
+    # create a text suface object,
+    # on which text is drawn on it.
+    green = (0, 255, 0)
+    blue = (0, 0, 128)
+    text = font.render(result, True, green, blue)
+
+    # create a rectangular object for the
+    # text surface object
+    text_rect = text.get_rect()
+
+    # set the center of the rectangular object.
+    text_rect.center = (WIDTH // 2, HEIGHT // 2)
+
+    # copying the text surface object
+    # to the display surface object
+    # at the center coordinate.
+    screen.blit(text, text_rect)
+
+
 def main() -> None:
     p.init()
     screen = p.display.set_mode((WIDTH, HEIGHT))
@@ -63,6 +89,9 @@ def main() -> None:
             print('Possible moves: ' + ','.join(str(move) for move in valid_moves))
             move_made = False
         draw_game_state(screen, game.board)
+        if game.checkmate or game.stalemate:
+            result = game.get_result_string()
+            show_result(result, screen)
         clock.tick(MAX_FPS)
         p.display.flip()
 

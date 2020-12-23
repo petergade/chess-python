@@ -22,6 +22,20 @@ class PieceType(enum.Enum):
     KING = enum.auto()
 
 
+PAWN = PieceType.PAWN
+KNIGHT = PieceType.KNIGHT
+BISHOP = PieceType.BISHOP
+ROOK = PieceType.ROOK
+QUEEN = PieceType.QUEEN
+KING = PieceType.KING
+
+
+class Result(enum.Enum):
+    WHITE = 1,
+    DRAW = 0,
+    BLACK = -1
+
+
 class Move:
     ranks_to_rows = {"1": 7, "2": 6, "3": 5, "4": 4, "5": 3, "6": 2, "7": 1, "8": 0}
     rows_to_ranks = {v: k for k, v in ranks_to_rows.items()}
@@ -336,7 +350,11 @@ class ChessGame:
              Rook(WHITE)]]
         self.white_to_move: bool = True
         self.move_stack: List[Move] = []
-
+        self.white_king_position: Tuple[int] = (7, 4)
+        self.black_king_position: Tuple[int] = (0, 4)
+        self.checkmate: bool = False
+        self.stalemate: bool = False
+        self.result: Result = None
     '''
     Metoda provadi tah. Uvolni puvodni pole a na cilove pole umisti figuru, ktera tahne. Tah se ulozi do seznamu tahu.
     Pote se prehodi hrac, ktery je na tahu.
@@ -347,6 +365,10 @@ class ChessGame:
         self.board[move.to_row][move.to_col] = move.piece_moved
         self.move_stack.append(move)  # ulozime si tah, abychom ho pozdeji mohli vratit
         self.white_to_move = not self.white_to_move  # zmenime hrace, ktery je na tahu
+        if move.piece_moved.piece_type == KING and move.piece_moved.color == WHITE:
+            self.white_king_position = (move.to_row, move.to_col)
+        elif move.piece_moved.piece_type == KING and move.piece_moved.color == BLACK:
+            self.black_king_position = (move.to_row, move.to_col)
 
     '''
     Metoda vraci tah. Tah si vezme ze seznamu tahu, vyhozenou figuru (pokud nejaka je) vrati zpatky a figuru, 
@@ -360,6 +382,10 @@ class ChessGame:
         self.board[move.from_row][move.from_col] = move.piece_moved
         self.board[move.to_row][move.to_col] = move.piece_captured
         self.white_to_move = not self.white_to_move  # zmenime hrace, ktery je na tahu
+        if move.piece_moved.piece_type == KING and move.piece_moved.color == WHITE:
+            self.white_king_position = (move.from_row, move.from_col)
+        elif move.piece_moved.piece_type == KING and move.piece_moved.color == BLACK:
+            self.black_king_position = (move.from_row, move.from_col)
 
     '''
     Metoda si nejdrive zjisti vsechny pseudo-legalni tahy volanim metody get_pseudo_legal_moves a pote kontroluje kazdy
@@ -368,7 +394,45 @@ class ChessGame:
     '''
 
     def generate_legal_moves(self) -> List[Move]:
-        return self.generate_pseudo_legal_moves()
+        # vygeneruj vsechny kandidaty na tahy
+        moves = self.generate_pseudo_legal_moves()
+        # prochazime pole tahu odzadu, abychom v nem mohli bez obav mazat
+        for i in range(len(moves) - 1, -1, -1):
+            # proved tah
+            self.make_move(moves[i])
+            # predchozi metoda zmenila hrace na tahu, musime zmenit zpatky
+            self.white_to_move = not self.white_to_move
+            if self.is_check():
+                moves.remove(moves[i])
+            self.undo_move()
+            # predchozi metoda zmenila hrace na tahu, musime zmenit zpatky
+            self.white_to_move = not self.white_to_move
+        # bud mat nebo pat
+        if len(moves) == 0:
+            if self.is_check():
+                self.checkmate = True
+            else:
+                self.stalemate = True
+        else:
+            # kdybychom vraceli tah, aby nam nezustal vyplneny vysledek
+            self.checkmate = False
+            self.checkmate = False
+        return moves
+
+    def is_check(self) -> bool:
+        if self.white_to_move:
+            return self.is_square_attacked(self.white_king_position[0], self.white_king_position[1])
+        else:
+            return self.is_square_attacked(self.black_king_position[0], self.black_king_position[1])
+
+    def is_square_attacked(self, r: int, c: int) -> bool:
+        self.white_to_move = not self.white_to_move
+        opponent_moves = self.generate_pseudo_legal_moves()
+        self.white_to_move = not self.white_to_move
+        for move in opponent_moves:
+            if move.to_row == r and move.to_col == c:
+                return True
+        return False
 
     '''
     Metoda generuje vsechny mozne tahy hrace na tahu s tim, ze se nekontroluje, zda by se hrac na tahu nedostal do 
@@ -385,6 +449,17 @@ class ChessGame:
                     if (color == WHITE and self.white_to_move) or (color == BLACK and not self.white_to_move):
                         moves.extend(piece.generate_pseudo_legal_moves(r, c, self.board) or [])
         return moves
+
+    def get_result_string(self) -> str:
+        if self.checkmate:
+            if self.white_to_move:
+                return '0:1'
+            else:
+                return '1:0'
+        elif self.stalemate:
+            return '0,5:0,5'
+        else:
+            return None
 
     def print_pieces(self, rank: int) -> None:
         s = '  '
