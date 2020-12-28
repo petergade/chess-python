@@ -32,10 +32,13 @@ class ConsoleGame:
             # Respond to the user's choice.
             if choice == '1':
                 move_uci = input('Enter you move: ')
-                print(f'Your move is {move_uci}')
-                move = Move.from_uci(move_uci, self.chess_game.board)
-                self.chess_game.make_move(move)
-                self.chess_game.print_board()
+                try:
+                    move = Move.from_uci(move_uci, self.chess_game.board)
+                    self.chess_game.make_move(move)
+                    self.chess_game.print_board()
+                    self.chess_game.print_info_message()
+                except Exception as err:
+                    print(err)
             elif choice == '2':
                 print("\nI can't wait to meet this person!\n")
             elif choice == '4':

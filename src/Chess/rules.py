@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Tuple, List
+from typing import Tuple, List, Union
 from abc import ABC, abstractmethod
 import enum
 
@@ -31,16 +31,21 @@ KING = PieceType.KING
 
 
 class Result(enum.Enum):
-    WHITE = 1,
-    DRAW = 0,
-    BLACK = -1
+    WHITE_WIN = 0,
+    BLACK_WIN = 1,
+    STALEMATE = 2,
+    THREEFOLD_REPETITION_DRAW = 3,
+    FIFTY_MOVE_RULE_DRAW = 4,
+    INSUFFICIENT_MATERIAL_DRAW = 5
 
 
 class Move:
-    ranks_to_rows = {"1": 7, "2": 6, "3": 5, "4": 4, "5": 3, "6": 2, "7": 1, "8": 0}
+    ranks_to_rows = {'1': 7, '2': 6, '3': 5, '4': 4, '5': 3, '6': 2, '7': 1, '8': 0}
     rows_to_ranks = {v: k for k, v in ranks_to_rows.items()}
-    files_to_cols = {"a": 0, "b": 1, "c": 2, "d": 3, "e": 4, "f": 5, "g": 6, "h": 7}
+    files_to_cols = {'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4, 'f': 5, 'g': 6, 'h': 7}
     cols_to_files = {v: k for k, v in files_to_cols.items()}
+    files = files_to_cols.keys()
+    ranks = ranks_to_rows.keys()
 
     def __init__(self, from_square: Tuple[int, int], to_square: Tuple[int, int], board: List[List[Piece]]) -> None:
         self.from_row = from_square[0]
@@ -59,9 +64,9 @@ class Move:
         return self.from_row * 1000 + self.from_col * 100 + self.to_row * 10 + self.to_col  # pro porovnavani tahu
 
     def __str__(self) -> str:
-        return self.get_chess_notation()
+        return self.get_uci_chess_notation()
 
-    def get_chess_notation(self) -> str:
+    def get_uci_chess_notation(self) -> str:
         return self.get_rank_file(self.from_row, self.from_col) + self.get_rank_file(self.to_row, self.to_col)
 
     def get_rank_file(self, row: int, column: int) -> str:
@@ -72,13 +77,23 @@ class Move:
         if 4 <= len(uci) <= 5:
             from_square = uci[0:2]
             to_square = uci[2:4]
+
+            if from_square[0] not in cls.files:
+                raise ValueError('Neplatný tah - první znak může být pouze a-h')
+            if from_square[1] not in cls.ranks:
+                raise ValueError('Neplatný tah - druhý znak může být pouze 1-8')
+            if to_square[0] not in cls.files:
+                raise ValueError('Neplatný tah - třetí znak může být pouze a-h')
+            if to_square[1] not in cls.ranks:
+                raise ValueError('Neplatný tah - čtvrtý znak může být pouze 1-8')
+
             from_col = cls.files_to_cols[from_square[0]]
             from_row = cls.ranks_to_rows[from_square[1]]
             to_col = cls.files_to_cols[to_square[0]]
             to_row = cls.ranks_to_rows[to_square[1]]
 
             if from_square == to_square:
-                raise ValueError(f"invalid move")
+                raise ValueError('Neplatný tah - shodné počáteční a koncové pole')
             return Move((from_row, from_col), (to_row, to_col), board)
         else:
             pass
@@ -350,25 +365,24 @@ class ChessGame:
              Rook(WHITE)]]
         self.white_to_move: bool = True
         self.move_stack: List[Move] = []
-        self.white_king_position: Tuple[int] = (7, 4)
-        self.black_king_position: Tuple[int] = (0, 4)
-        self.checkmate: bool = False
-        self.stalemate: bool = False
-        self.result: Result = None
+        self.white_king_position: Tuple[int, int] = (7, 4)
+        self.black_king_position: Tuple[int, int] = (0, 4)
+        self.result: Union[Result, None] = None
+
     '''
     Metoda provadi tah. Uvolni puvodni pole a na cilove pole umisti figuru, ktera tahne. Tah se ulozi do seznamu tahu.
     Pote se prehodi hrac, ktery je na tahu.
     '''
-
     def make_move(self, move: Move) -> None:
         self.board[move.from_row][move.from_col] = None
         self.board[move.to_row][move.to_col] = move.piece_moved
         self.move_stack.append(move)  # ulozime si tah, abychom ho pozdeji mohli vratit
-        self.white_to_move = not self.white_to_move  # zmenime hrace, ktery je na tahu
+        self.change_turn()
         if move.piece_moved.piece_type == KING and move.piece_moved.color == WHITE:
             self.white_king_position = (move.to_row, move.to_col)
         elif move.piece_moved.piece_type == KING and move.piece_moved.color == BLACK:
             self.black_king_position = (move.to_row, move.to_col)
+        self.check_result()
 
     '''
     Metoda vraci tah. Tah si vezme ze seznamu tahu, vyhozenou figuru (pokud nejaka je) vrati zpatky a figuru, 
@@ -381,11 +395,15 @@ class ChessGame:
         move = self.move_stack.pop()
         self.board[move.from_row][move.from_col] = move.piece_moved
         self.board[move.to_row][move.to_col] = move.piece_captured
-        self.white_to_move = not self.white_to_move  # zmenime hrace, ktery je na tahu
+        self.change_turn()
         if move.piece_moved.piece_type == KING and move.piece_moved.color == WHITE:
             self.white_king_position = (move.from_row, move.from_col)
         elif move.piece_moved.piece_type == KING and move.piece_moved.color == BLACK:
             self.black_king_position = (move.from_row, move.from_col)
+        self.result = None
+
+    def change_turn(self):
+        self.white_to_move = not self.white_to_move
 
     '''
     Metoda si nejdrive zjisti vsechny pseudo-legalni tahy volanim metody get_pseudo_legal_moves a pote kontroluje kazdy
@@ -401,23 +419,19 @@ class ChessGame:
             # proved tah
             self.make_move(moves[i])
             # predchozi metoda zmenila hrace na tahu, musime zmenit zpatky
-            self.white_to_move = not self.white_to_move
+            self.change_turn()
             if self.is_check():
                 moves.remove(moves[i])
             self.undo_move()
             # predchozi metoda zmenila hrace na tahu, musime zmenit zpatky
-            self.white_to_move = not self.white_to_move
-        # bud mat nebo pat
-        if len(moves) == 0:
-            if self.is_check():
-                self.checkmate = True
-            else:
-                self.stalemate = True
-        else:
-            # kdybychom vraceli tah, aby nam nezustal vyplneny vysledek
-            self.checkmate = False
-            self.checkmate = False
+            self.change_turn()
         return moves
+
+    def has_valid_move(self):
+        moves = self.generate_legal_moves()
+        if len(moves) == 0:
+            return False
+        return True
 
     def is_check(self) -> bool:
         if self.white_to_move:
@@ -426,9 +440,9 @@ class ChessGame:
             return self.is_square_attacked(self.black_king_position[0], self.black_king_position[1])
 
     def is_square_attacked(self, r: int, c: int) -> bool:
-        self.white_to_move = not self.white_to_move
+        self.change_turn()
         opponent_moves = self.generate_pseudo_legal_moves()
-        self.white_to_move = not self.white_to_move
+        self.change_turn()
         for move in opponent_moves:
             if move.to_row == r and move.to_col == c:
                 return True
@@ -450,16 +464,32 @@ class ChessGame:
                         moves.extend(piece.generate_pseudo_legal_moves(r, c, self.board) or [])
         return moves
 
-    def get_result_string(self) -> str:
-        if self.checkmate:
-            if self.white_to_move:
-                return '0:1'
+    def check_result(self) -> None:
+        if not self.has_valid_move():
+            if self.is_check():
+                if self.white_to_move:
+                    self.result = Result.BLACK_WIN
+                else:
+                    self.result = Result.WHITE_WIN
             else:
-                return '1:0'
-        elif self.stalemate:
+                self.result = Result.STALEMATE
+        if self.is_insufficient_material():
+            self.result = Result.INSUFFICIENT_MATERIAL_DRAW
+
+    def get_result_string(self) -> Union[str, None]:
+        if self.result == Result.WHITE_WIN:
+            return '1:0'
+        elif self.result == Result.BLACK_WIN:
+            return '0:1'
+        elif self.result in {Result.STALEMATE, Result.FIFTY_MOVE_RULE_DRAW, Result.THREEFOLD_REPETITION_DRAW,
+                             Result.INSUFFICIENT_MATERIAL_DRAW}:
             return '0,5:0,5'
         else:
             return None
+
+    def is_insufficient_material(self):
+        # TODO: dodelat
+        return False
 
     def print_pieces(self, rank: int) -> None:
         s = '  '
@@ -493,3 +523,11 @@ class ChessGame:
             self.print_rank(rank)
         print('  |-----|-----|-----|-----|-----|-----|-----|-----|')
         print('     A     B     C     D     E     F     G     H   ')
+
+    def print_info_message(self):
+        if self.result == Result.WHITE_WIN or self.result == Result.BLACK_WIN:
+            print('Nastal šach mat')
+        elif self.result == Result.STALEMATE:
+            print('Nastal pat')
+        elif self.is_check():
+            print('Nastal šach')
