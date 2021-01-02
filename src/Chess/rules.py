@@ -3,6 +3,8 @@ from typing import Tuple, List, Union
 from abc import ABC, abstractmethod
 import enum
 
+import bcolors
+
 
 class Color(enum.Enum):
     WHITE = 0,
@@ -66,7 +68,13 @@ class Move:
     def __str__(self) -> str:
         return self.get_uci_chess_notation()
 
+    def __repr__(self) -> str:
+        return self.get_uci_chess_notation()
+
     def get_uci_chess_notation(self) -> str:
+        return self.get_rank_file(self.from_row, self.from_col) + self.get_rank_file(self.to_row, self.to_col)
+
+    def get_classic_chess_notation(self) -> str:
         return self.get_rank_file(self.from_row, self.from_col) + self.get_rank_file(self.to_row, self.to_col)
 
     def get_rank_file(self, row: int, column: int) -> str:
@@ -367,13 +375,16 @@ class ChessGame:
         self.move_stack: List[Move] = []
         self.white_king_position: Tuple[int, int] = (7, 4)
         self.black_king_position: Tuple[int, int] = (0, 4)
+        self.in_check = False
+        self.pins = []
+        self.checks = []
         self.result: Union[Result, None] = None
 
     '''
     Metoda provadi tah. Uvolni puvodni pole a na cilove pole umisti figuru, ktera tahne. Tah se ulozi do seznamu tahu.
     Pote se prehodi hrac, ktery je na tahu.
     '''
-    def make_move(self, move: Move) -> None:
+    def do_move(self, move: Move) -> None:
         self.board[move.from_row][move.from_col] = None
         self.board[move.to_row][move.to_col] = move.piece_moved
         self.move_stack.append(move)  # ulozime si tah, abychom ho pozdeji mohli vratit
@@ -382,7 +393,6 @@ class ChessGame:
             self.white_king_position = (move.to_row, move.to_col)
         elif move.piece_moved.piece_type == KING and move.piece_moved.color == BLACK:
             self.black_king_position = (move.to_row, move.to_col)
-        self.check_result()
 
     '''
     Metoda vraci tah. Tah si vezme ze seznamu tahu, vyhozenou figuru (pokud nejaka je) vrati zpatky a figuru, 
@@ -417,7 +427,7 @@ class ChessGame:
         # prochazime pole tahu odzadu, abychom v nem mohli bez obav mazat
         for i in range(len(moves) - 1, -1, -1):
             # proved tah
-            self.make_move(moves[i])
+            self.do_move(moves[i])
             # predchozi metoda zmenila hrace na tahu, musime zmenit zpatky
             self.change_turn()
             if self.is_check():
@@ -464,7 +474,7 @@ class ChessGame:
                         moves.extend(piece.generate_pseudo_legal_moves(r, c, self.board) or [])
         return moves
 
-    def check_result(self) -> None:
+    def check_end_result(self) -> None:
         if not self.has_valid_move():
             if self.is_check():
                 if self.white_to_move:
@@ -526,8 +536,8 @@ class ChessGame:
 
     def print_info_message(self):
         if self.result == Result.WHITE_WIN or self.result == Result.BLACK_WIN:
-            print('Nastal šach mat')
+            print(f'{bcolors.PASS}Checkmate. Result: {self.get_result_string()}{bcolors.ENDC}')
         elif self.result == Result.STALEMATE:
-            print('Nastal pat')
+            print(f'{bcolors.PASS}Stalemate. Result: {self.get_result_string()}{bcolors.ENDC}')
         elif self.is_check():
-            print('Nastal šach')
+            print(f'{bcolors.WARN}Check!{bcolors.ENDC}')

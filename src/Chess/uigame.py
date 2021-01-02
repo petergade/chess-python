@@ -78,7 +78,7 @@ def main() -> None:
                     move = Move(player_clicks[0], player_clicks[1], game.board)
                     # print(move.get_chess_notation())
                     if move in valid_moves:
-                        game.make_move(move)
+                        game.do_move(move)
                         move_made = True
                         sq_selected = ()
                         player_clicks = []
@@ -89,7 +89,8 @@ def main() -> None:
             print('Possible moves: ' + ','.join(str(move) for move in valid_moves))
             move_made = False
         draw_game_state(screen, game.board)
-        if game.checkmate or game.stalemate:
+        game.check_end_result()
+        if game.result is not None:
             result = game.get_result_string()
             show_result(result, screen)
         clock.tick(MAX_FPS)
