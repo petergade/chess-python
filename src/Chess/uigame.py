@@ -45,6 +45,7 @@ def show_result(result: str, screen: p.Surface) -> None:
 def main() -> None:
     p.init()
     screen = p.display.set_mode((WIDTH, HEIGHT))
+    p.display.set_caption('chess')
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
     game = ChessGame()
@@ -75,22 +76,24 @@ def main() -> None:
                     sq_selected = (row, col)
                     player_clicks.append(sq_selected)
                 if len(player_clicks) == 2:
-                    move = Move(player_clicks[0], player_clicks[1], game.board)
-                    # print(move.get_chess_notation())
-                    if move in valid_moves:
-                        game.do_move(move)
-                        move_made = True
-                        sq_selected = ()
-                        player_clicks = []
-                    else:
+                    if game.board[player_clicks[0][0]][player_clicks[0][1]] is not None:
+                        move = Move(player_clicks[0], player_clicks[1], game.board)
+                        for i in range(len(valid_moves)):
+                            if move == valid_moves[i]:
+                                game.do_move(valid_moves[i])
+                                game.check_end_result()
+                                move_made = True
+                                sq_selected = ()
+                                player_clicks = []
+                    if not move_made:
                         player_clicks = [sq_selected]
         if move_made:
             valid_moves = game.generate_legal_moves()
             print('Possible moves: ' + ','.join(str(move) for move in valid_moves))
+            print('Pins: ' + ','.join(str(pin) for pin in game.pins))
             move_made = False
         draw_game_state(screen, game.board)
-        game.check_end_result()
-        if game.result is not None:
+        if game.game_result is not None:
             result = game.get_result_string()
             show_result(result, screen)
         clock.tick(MAX_FPS)
