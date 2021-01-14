@@ -91,6 +91,8 @@ def main() -> None:
             valid_moves = game.generate_legal_moves()
             print('Possible moves: ' + ','.join(str(move) for move in valid_moves))
             print('Pins: ' + ','.join(str(pin) for pin in game.pins))
+            print('En passant square: ' + str(game.enpassant_square_log[-1]) if len(game.enpassant_square_log) > 0 else 'none')
+            print('Castling rights: ' + str(game.castling_rights_log[-1]))
             move_made = False
         draw_game_state(screen, game.board)
         if game.game_result is not None:
