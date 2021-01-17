@@ -17,28 +17,12 @@ def load_images() -> None:
 
 
 def show_result(result: str, screen: p.Surface) -> None:
-    # create a font object.
-    # 1st parameter is the font file
-    # which is present in pygame.
-    # 2nd parameter is size of the font
     font = p.font.Font('freesansbold.ttf', 48)
-
-    # create a text suface object,
-    # on which text is drawn on it.
     green = (0, 255, 0)
     blue = (0, 0, 128)
     text = font.render(result, True, green, blue)
-
-    # create a rectangular object for the
-    # text surface object
     text_rect = text.get_rect()
-
-    # set the center of the rectangular object.
     text_rect.center = (WIDTH // 2, HEIGHT // 2)
-
-    # copying the text surface object
-    # to the display surface object
-    # at the center coordinate.
     screen.blit(text, text_rect)
 
 

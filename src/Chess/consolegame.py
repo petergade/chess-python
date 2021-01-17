@@ -7,6 +7,7 @@ class ConsoleGame:
 
     def __init__(self):
         self.chess_game = ChessGame()
+        self.info_message_log = []  # abychom pri vraceni tahu vedeli, co mame vypsat za hlasku
 
     def print_all_moves(self) -> None:
         """
@@ -83,13 +84,22 @@ class ConsoleGame:
         s += '|'
         print(s)
 
-    def print_info_message(self, move) -> None:
+    def print_player_points(self):
+        white_points, black_points = self.chess_game.get_naive_position_evaluation()
+        print(f'Player points - white: {white_points}, black: {black_points}')
+
+    def print_info_message(self, move, move_undone: bool=False) -> None:
         """
         Metoda vypise, ktery tah byl zahrany a pripadne, zda vzniknul tahem sach, sach mat nebo pat
         :param move: zahrany tah
+        :param move_undone: flag zda jde o normalni tah nebo vraceni tahu
         :return:
         """
-        print(f'Move {move} played')
+        if move_undone:
+            print(f'Move {move} undone')
+        else:
+            print(f'Move {move} played')
+
         if self.chess_game.game_result == GameResult.WHITE_WIN or self.chess_game.game_result == GameResult.BLACK_WIN:
             print(f'{bcolors.PASS}Checkmate. GameResult: {self.chess_game.get_result_string()}{bcolors.ENDC}')
         elif self.chess_game.game_result == GameResult.STALEMATE:
@@ -126,7 +136,9 @@ class ConsoleGame:
                     self.chess_game.do_move(moves[i])
                     self.chess_game.check_end_result()
                     self.print_board()
+                    self.print_player_points()
                     self.print_info_message(move)
+                    print()
                     return
             raise Exception(f'{move} is not legal move')
         except Exception as err:
@@ -163,13 +175,18 @@ class ConsoleGame:
             elif choice == '3':
                 self.replay_game()
             elif choice == '4':
-                legal_moves = self.chess_game.generate_legal_moves()
-                print(','.join(str(legal_move) for legal_move in legal_moves))
-            elif choice == '5':
-                self.chess_game.undo_move()
+                move = self.chess_game.undo_move()
+                if move is None:
+                    print('No move to undone')
+                    continue
                 self.print_board()
                 self.chess_game.check_end_result()
-                self.print_info_message()
+                self.print_player_points()
+                self.print_info_message(move, move_undone=True)
+                print()
+            elif choice == '5':
+                legal_moves = self.chess_game.generate_legal_moves()
+                print(','.join(str(legal_move) for legal_move in legal_moves))
             elif choice == '6':
                 self.replay_sample_game()
             elif choice == 'q':
@@ -182,8 +199,8 @@ class ConsoleGame:
         print('[1] - Play move')
         print('[2] - Display all moves already played')
         print('[3] - Replay the game from the beginning')
-        # print('[4] - Print legal moves')
-        # print('[5] - Undo move')
+        print('[4] - Undo move')
+        # print('[5] - Print legal moves')
         # print('[6] - Load sample game')
         print('[q] - Quit app')
 

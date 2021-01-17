@@ -31,8 +31,12 @@ QUEEN = PieceType.QUEEN
 KING = PieceType.KING
 
 
-# funkce vyuzivana pri promene pesce na jinou figuru
-def create_piece(color: Color, piece_type: PieceType):
+def create_piece(color: Color, piece_type: PieceType) -> Union[BISHOP, KNIGHT, ROOK, QUEEN]:
+    """
+    Funkce vyuzivana pri promene pesce na jinou figuru
+    :param color: barva figury
+    :param piece_type: typ figury
+    """
     return {
         BISHOP: Bishop(color),
         KNIGHT: Knight(color),
@@ -42,6 +46,11 @@ def create_piece(color: Color, piece_type: PieceType):
 
 
 def get_promotion_piece_type(promotion_type_str: str) -> PieceType:
+    """
+    Funkce bere jako vstup typ promeny pesce zadane hracem a vraci typ figury
+    :param promotion_type_str: typ figury, ve kterou by chtel hrac promenit pesce
+    :return: typ figury
+    """
     if promotion_type_str == 'Q':
         return QUEEN
     elif promotion_type_str == 'N':
@@ -67,7 +76,30 @@ def get_promotion_type_str(promotion_type: PieceType) -> str:
         raise Exception(f'Invalid promotion type: {promotion_type}')
 
 
+def get_piece_type_value(piece_type: PieceType) -> int:
+    """
+    Funkce prevadi typ figury na relativni hodnotu figury (slouzi pro bodove hodnoceni hracu)
+    :param piece_type: typ figury
+    :return: hodnota figury
+    """
+    if piece_type == PAWN:
+        return 1
+    elif piece_type == KNIGHT:
+        return 3
+    elif piece_type == BISHOP:
+        return 3
+    elif piece_type == ROOK:
+        return 5
+    elif piece_type == QUEEN:
+        return 9
+    else:
+        return 0  # krale nechceme pocitat
+
+
 class GameResult(enum.Enum):
+    """
+    Enum vsechn moznych vysledku sachove partie. Implementovany jsou zatim prvni tri.
+    """
     WHITE_WIN = 0,
     BLACK_WIN = 1,
     STALEMATE = 2,
@@ -77,6 +109,9 @@ class GameResult(enum.Enum):
 
 
 class CastlingRights:
+    """
+    Trida slouzi pouze pro udrzovani dat o pravech k obema typum rosady obou hracu
+    """
     def __init__(self, wk: bool, bk: bool, wq: bool, bq: bool):
         self.wk = wk  # wk - white kingside - pravo bileho na kingside rosadu
         self.bk = bk  # bk - black kingside - pravo cerneho na kingside rosadu
@@ -88,6 +123,9 @@ class CastlingRights:
 
 
 class Move:
+    """
+    Trida pro reprezentaci sachoveho tahu. V soucasne dobe implementovana pouze standardni notace (SAN)
+    """
     ranks_to_rows = {'1': 7, '2': 6, '3': 5, '4': 4, '5': 3, '6': 2, '7': 1, '8': 0}
     rows_to_ranks = {v: k for k, v in ranks_to_rows.items()}
     files_to_cols = {'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4, 'f': 5, 'g': 6, 'h': 7}
@@ -118,7 +156,8 @@ class Move:
                 self.piece_captured = board[self.end_row - 1][self.end_col]
         # rosada
         self.is_castle = is_castle
-        # anotace - priradime pozdeji
+        # notace tahu - priradime pozdeji, potrebujeme k tomu znat vsechny mozne tahy daneho pultahu kvuli
+        # nejednoznacnym tahum
         self.san = None
 
     def __eq__(self, other) -> bool:
@@ -152,6 +191,11 @@ class Move:
 
     @classmethod
     def validate_san(cls, san: str) -> bool:
+        """
+        Metoda validuje rucni vstup, zda je tahem podle sachove notace
+        :param san: zapis tahu od hrace
+        :return: True/False, zda je tah podle sachove notace
+        """
         regex = re.compile(r'''
         (
             0-0(?:-0)?  # rosady
@@ -665,14 +709,14 @@ class ChessGame:
         # pravo na rosadu
         self.update_castling_rights(move)
 
-    def undo_move(self) -> None:
+    def undo_move(self) -> Union[Move, None]:
         """
         Metoda vraci tah. Tah si vezme ze seznamu tahu, vyhozenou figuru (pokud nejaka je) vrati zpatky a figuru,
         ktera tahla vrati na puvodni pole. Dale prehodi hrace, ktery je na tahu. Pokud byl tah specialni (rosada,
         en passant nebo promena pesce), musime vse dat do puvodniho stavu, k tomu mame napr. log prav na rosadu
         """
         if len(self.move_stack) == 0:
-            pass
+            return None
         move = self.move_stack.pop()
         self.board[move.start_row][move.start_col] = move.piece_moved
         self.board[move.end_row][move.end_col] = move.piece_captured
@@ -697,6 +741,8 @@ class ChessGame:
                 self.board[move.end_row][move.end_col - 2] = self.board[move.end_row][move.end_col + 1]
                 self.board[move.end_row][move.end_col + 1] = None
         self.game_result = None
+
+        return move
 
     def change_turn(self):
         self.white_to_move = not self.white_to_move
@@ -940,6 +986,24 @@ class ChessGame:
             return '0,5:0,5'
         else:
             return None
+
+    def get_naive_position_evaluation(self) -> Tuple[int, int]:
+        """
+        Metoda spocita pro kazdeho hrace hodnotu jeho figur. (pesec = 1, strelec = jezdec = 3, vez = 5, dama = 9)
+        :return: hodnoceni obou hracu
+        """
+        white_points: int = 0
+        black_points: int = 0
+        for r in range(len(self.board)):
+            for c in range(len(self.board[r])):
+                piece = self.board[r][c]
+                if piece is not None:
+                    if piece.color == WHITE:
+                        white_points += get_piece_type_value(piece.piece_type)
+                    else:
+                        black_points += get_piece_type_value(piece.piece_type)
+        return white_points, black_points
+
 
     def is_insufficient_material(self):
         # TODO: dodelat
