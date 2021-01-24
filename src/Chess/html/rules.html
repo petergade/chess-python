@@ -59,8 +59,12 @@ QUEEN = PieceType.QUEEN
 KING = PieceType.KING
 
 
-# funkce vyuzivana pri promene pesce na jinou figuru
-def create_piece(color: Color, piece_type: PieceType):
+def create_piece(color: Color, piece_type: PieceType) -&gt; Union[BISHOP, KNIGHT, ROOK, QUEEN]:
+    &#34;&#34;&#34;
+    Funkce vyuzivana pri promene pesce na jinou figuru.
+    :param color: barva figury
+    :param piece_type: typ figury
+    &#34;&#34;&#34;
     return {
         BISHOP: Bishop(color),
         KNIGHT: Knight(color),
@@ -70,6 +74,11 @@ def create_piece(color: Color, piece_type: PieceType):
 
 
 def get_promotion_piece_type(promotion_type_str: str) -&gt; PieceType:
+    &#34;&#34;&#34;
+    Funkce bere jako vstup typ promeny pesce zadane hracem a vraci typ figury.
+    :param promotion_type_str: typ figury, ve kterou by chtel hrac promenit pesce
+    :return: typ figury
+    &#34;&#34;&#34;
     if promotion_type_str == &#39;Q&#39;:
         return QUEEN
     elif promotion_type_str == &#39;N&#39;:
@@ -83,6 +92,11 @@ def get_promotion_piece_type(promotion_type_str: str) -&gt; PieceType:
 
 
 def get_promotion_type_str(promotion_type: PieceType) -&gt; str:
+    &#34;&#34;&#34;
+    Funkce konvertuje typ figury na jeji symbol.
+    :param promotion_type: typ figury
+    :return: symbol figury
+    &#34;&#34;&#34;
     if promotion_type == QUEEN:
         return &#39;Q&#39;
     elif promotion_type == KNIGHT:
@@ -95,7 +109,30 @@ def get_promotion_type_str(promotion_type: PieceType) -&gt; str:
         raise Exception(f&#39;Invalid promotion type: {promotion_type}&#39;)
 
 
+def get_piece_type_value(piece_type: PieceType) -&gt; int:
+    &#34;&#34;&#34;
+    Funkce prevadi typ figury na relativni hodnotu figury (slouzi pro bodove hodnoceni hracu).
+    :param piece_type: typ figury
+    :return: hodnota figury
+    &#34;&#34;&#34;
+    if piece_type == PAWN:
+        return 1
+    elif piece_type == KNIGHT:
+        return 3
+    elif piece_type == BISHOP:
+        return 3
+    elif piece_type == ROOK:
+        return 5
+    elif piece_type == QUEEN:
+        return 9
+    else:
+        return 0  # krale nechceme pocitat
+
+
 class GameResult(enum.Enum):
+    &#34;&#34;&#34;
+    Enum vsechn moznych vysledku sachove partie. Implementovany jsou zatim prvni tri.
+    &#34;&#34;&#34;
     WHITE_WIN = 0,
     BLACK_WIN = 1,
     STALEMATE = 2,
@@ -105,17 +142,23 @@ class GameResult(enum.Enum):
 
 
 class CastlingRights:
+    &#34;&#34;&#34;
+    Trida slouzi pouze pro udrzovani dat o pravech k obema typum rosady obou hracu.
+    &#34;&#34;&#34;
     def __init__(self, wk: bool, bk: bool, wq: bool, bq: bool):
         self.wk = wk  # wk - white kingside - pravo bileho na kingside rosadu
         self.bk = bk  # bk - black kingside - pravo cerneho na kingside rosadu
         self.wq = wq  # wq - white queenside - pravo bileho na queenside rosadu
         self.bq = bq  # bq - black queenside - pravo cerneho na queenside rosadu
 
-    def __str__(self):
+    def __str__(self) -&gt; str:
         return f&#39;wk: {self.wk}, bk: {self.bk}, wq: {self.wq}, bq: {self.bq}&#39;
 
 
 class Move:
+    &#34;&#34;&#34;
+    Trida pro reprezentaci sachoveho tahu. V soucasne dobe implementovana pouze standardni notace (SAN).
+    &#34;&#34;&#34;
     ranks_to_rows = {&#39;1&#39;: 7, &#39;2&#39;: 6, &#39;3&#39;: 5, &#39;4&#39;: 4, &#39;5&#39;: 3, &#39;6&#39;: 2, &#39;7&#39;: 1, &#39;8&#39;: 0}
     rows_to_ranks = {v: k for k, v in ranks_to_rows.items()}
     files_to_cols = {&#39;a&#39;: 0, &#39;b&#39;: 1, &#39;c&#39;: 2, &#39;d&#39;: 3, &#39;e&#39;: 4, &#39;f&#39;: 5, &#39;g&#39;: 6, &#39;h&#39;: 7}
@@ -146,17 +189,23 @@ class Move:
                 self.piece_captured = board[self.end_row - 1][self.end_col]
         # rosada
         self.is_castle = is_castle
-        # anotace - priradime pozdeji
+        # notace tahu - priradime pozdeji, potrebujeme k tomu znat vsechny mozne tahy daneho pultahu kvuli
+        # nejednoznacnym tahum
         self.san = None
 
-    def __eq__(self, other) -&gt; bool:
+    def __eq__(self, other: Move) -&gt; bool:
+        &#34;&#34;&#34;
+        Metoda porovnava dva tahy podle jejich hash hodnoty.
+        :param other: Tah, se kterym srovnavame
+        :return: True/False zda jsou tahy stejne
+        &#34;&#34;&#34;
         if isinstance(other, Move):
             return hash(self) == hash(other)
         return False
 
     def __hash__(self) -&gt; int:
         &#34;&#34;&#34;
-        Metoda pocita hodnotu tahu pro porovnavani tahu, zda jsou stejne
+        Metoda pocita hodnotu tahu pro porovnavani tahu, zda jsou stejne.
         :return: hodnota tahu pro porovnavani (hashovani)
         &#34;&#34;&#34;
         promotion_type_value = 0
@@ -173,13 +222,26 @@ class Move:
         return self.start_row * 10000 + self.start_col * 1000 + self.end_row * 100 + self.end_col * 10 + promotion_type_value
 
     def __str__(self) -&gt; str:
+        &#34;&#34;&#34;
+        Metoda vraci textovou reprezentaci tahu pomoci SAN notace.
+        :return: Textova reprezentace tahu pomoci SAN notace
+        &#34;&#34;&#34;
         return self.san
 
     def __repr__(self) -&gt; str:
+        &#34;&#34;&#34;
+        Metoda vraci textovou reprezentaci tahu pomoci SAN notace.
+        :return: Textova reprezentace tahu pomoci SAN notace
+        &#34;&#34;&#34;
         return self.san
 
     @classmethod
     def validate_san(cls, san: str) -&gt; bool:
+        &#34;&#34;&#34;
+        Metoda validuje rucni vstup, zda je tahem podle sachove notace.
+        :param san: zapis tahu od hrace
+        :return: True/False, zda je tah podle sachove notace
+        &#34;&#34;&#34;
         regex = re.compile(r&#39;&#39;&#39;
         (
             0-0(?:-0)?  # rosady
@@ -194,11 +256,11 @@ class Move:
         return match is not None
 
     @classmethod
-    def annotate_moves_san(cls, moves) -&gt; None:
+    def annotate_moves_san(cls, moves: List[Move]) -&gt; None:
         &#34;&#34;&#34;
         Metoda vyplnuje SAN (Standard Algebraic Notation) ke kazdemu tahu, ktery dostane na vstupu. Nemuzeme
         delat pro jednotlive tahy, protoze potrebujeme znat vsechny tahy z daneho pultahu kvuli moznym nejednoznacnym
-        tahum (kdy mohou dve figury skocit na stejne pole)
+        tahum (kdy mohou dve figury skocit na stejne pole).
         :param moves: Tahy k anotaci (vsechny legalni tahy daneho pultahu)
         &#34;&#34;&#34;
         for move in moves:
@@ -236,7 +298,7 @@ class Move:
     def get_ambiguous_piece_identification(cls, move: Move, moves: List[Move]) -&gt; str:
         &#34;&#34;&#34;
         Metoda zkouma tah, jestli je jednoznacny, to znamena, jestli nemuze vice figur skocit na stejne pole
-        a v pripade, ze tah vyhodnoti jako nejednoznacny, tak se snazi najit spravnou identifikaci figury
+        a v pripade, ze tah vyhodnoti jako nejednoznacny, tak se snazi najit spravnou identifikaci figury.
         :param move: Tah, ktery zkoumame
         :param moves: Vsechny tahy v danem pultahu
         :return: Identifikace figury, tj. sloupec nebo radek napr. &#34;a&#34; nebo &#34;3&#34;
@@ -256,7 +318,9 @@ class Move:
 
 
 class Piece(ABC):
-
+    &#34;&#34;&#34;
+    Abstraktni trida figury, z niz dedi jednotlive figury (pesec, jezdec, strelec, vez, dama, kral).
+    &#34;&#34;&#34;
     # abstraktni property, musi vyplnit potomek
     @property
     def piece_type(self) -&gt; PieceType:
@@ -271,11 +335,22 @@ class Piece(ABC):
         self.color = color
 
     def __str__(self) -&gt; str:
+        &#34;&#34;&#34;
+        Metoda vraci symbol figury.
+        :return: symbol figury
+        &#34;&#34;&#34;
         return f&#39;{self.symbol}&#39; if self.color == WHITE else f&#39;.{self.symbol}.&#39;
 
     # abstraktni metoda pro generovani pseudo-legalnich tahu, musi vyplnit potomci
     @abstractmethod
     def generate_pseudo_legal_moves(self, r: int, c: int, game: ChessGame) -&gt; List[Move]:
+        &#34;&#34;&#34;
+        Abstraktni metoda pro generovani pseudo-legalnich tahu, musi vyplnit potomci.
+        :param r: index radku sachovnice
+        :param c: index sloupce sachovnice
+        :param game: objekt partie
+        :return: list pseudo-legalnich tahu
+        &#34;&#34;&#34;
         pass
 
     @staticmethod
@@ -436,7 +511,7 @@ class Pawn(Piece):
                      is_enpassant: bool = False) -&gt; None:
         &#34;&#34;&#34;
         Metoda je ciste kvuli tomu, abychom mohli pridat vsechny mozne promeny pesce, jinak by slo tahy pridavat
-        primo v metode generate_pseudo_legal_moves
+        primo v metode generate_pseudo_legal_moves.
         &#34;&#34;&#34;
         if (game.white_to_move and end_row &gt; 0) or (not game.white_to_move and end_row &lt; 7):
             moves.append(Move((start_row, start_col), (end_row, end_col), game.board, is_enpassant=is_enpassant))
@@ -454,7 +529,7 @@ class Rook(Piece):
     def generate_pseudo_legal_moves(self, r: int, c: int, game: ChessGame) -&gt; List[Move]:
         &#34;&#34;&#34;
         Metoda generuje vsechny pseudo-legalni tahy veze. Zde pouze pouzijeme metodu pro generovani tahu po primkach,
-        ktera je spolecna pro vez i damu
+        ktera je spolecna pro vez i damu.
         :param r: index radku sachovnice
         :param c: index sloupce sachovnice
         :param game: objekt partie
@@ -470,10 +545,6 @@ class Rook(Piece):
 class Knight(Piece):
     piece_type = PieceType.KNIGHT
     symbol = &#39;N&#39;
-
-    &#39;&#39;&#39;
-    Generuje vsechny kandidaty na tahy pro jezdce. Zde musime prozkoumat vsech 8 moznych poli, kam muze jezdec tahnout
-    &#39;&#39;&#39;
 
     def generate_pseudo_legal_moves(self, r: int, c: int, game: ChessGame) -&gt; List[Move]:
         &#34;&#34;&#34;
@@ -614,6 +685,9 @@ class King(Piece):
 
 
 class ChessGame:
+    &#34;&#34;&#34;
+    Trida pro sachovou partii.
+    &#34;&#34;&#34;
     def __init__(self) -&gt; None:
         self.board: List[List[Union[Piece, None]]] = [
             [Rook(BLACK), Knight(BLACK), Bishop(BLACK), Queen(BLACK), King(BLACK), Bishop(BLACK), Knight(BLACK),
@@ -634,8 +708,8 @@ class ChessGame:
         self.white_king_position: Tuple[int, int] = (7, 4)
         self.black_king_position: Tuple[int, int] = (0, 4)
         self.in_check = False
-        self.pins = []
-        self.checks = []
+        self.pins: List[Tuple[int, int]] = []
+        self.checks: List[Tuple[int, int]] = []
         self.game_result: Union[GameResult, None] = None
         # list souradnic poli, kde bylo mozne brat mimochodem - je potreba udrzovat list jako vyvoj tohoto
         # pole kvuli vraceni tahu, abychom mohli obnovovat spravne pole pro brani mimochodem
@@ -693,14 +767,14 @@ class ChessGame:
         # pravo na rosadu
         self.update_castling_rights(move)
 
-    def undo_move(self) -&gt; None:
+    def undo_move(self) -&gt; Union[Move, None]:
         &#34;&#34;&#34;
         Metoda vraci tah. Tah si vezme ze seznamu tahu, vyhozenou figuru (pokud nejaka je) vrati zpatky a figuru,
         ktera tahla vrati na puvodni pole. Dale prehodi hrace, ktery je na tahu. Pokud byl tah specialni (rosada,
         en passant nebo promena pesce), musime vse dat do puvodniho stavu, k tomu mame napr. log prav na rosadu
         &#34;&#34;&#34;
         if len(self.move_stack) == 0:
-            pass
+            return None
         move = self.move_stack.pop()
         self.board[move.start_row][move.start_col] = move.piece_moved
         self.board[move.end_row][move.end_col] = move.piece_captured
@@ -726,10 +800,19 @@ class ChessGame:
                 self.board[move.end_row][move.end_col + 1] = None
         self.game_result = None
 
-    def change_turn(self):
+        return move
+
+    def change_turn(self) -&gt; None:
+        &#34;&#34;&#34;
+        Metoda prehazuje hrace na tahu.
+        &#34;&#34;&#34;
         self.white_to_move = not self.white_to_move
 
-    def update_castling_rights(self, move: Move):
+    def update_castling_rights(self, move: Move) -&gt; None:
+        &#34;&#34;&#34;
+        Metoda aktualizuje prava na rosady pro oba hrace
+        :param move: tah, ktery provadime
+        &#34;&#34;&#34;
         # nacteme si posledni prava na rosadu
         current_castling_rights = self.castling_rights_log[-1]
         if move.piece_moved.piece_type == KING:
@@ -915,13 +998,23 @@ class ChessGame:
                     checks.append((end_row, end_col, knight_move[0], knight_move[1]))
         return in_check, pins, checks
 
-    def has_valid_move(self):
+    def has_valid_move(self) -&gt; bool:
+        &#34;&#34;&#34;
+        Metoda zjistuje, zda ma hrac alespon jeden legalni tah. Slouzi pro urcovani vysledku partie.
+        :return: True/False hodnota, zda ma hrac alespon jeden legalni tah
+        &#34;&#34;&#34;
         moves = self.generate_legal_moves()
         if len(moves) == 0:
             return False
         return True
 
     def is_square_attacked(self, r: int, c: int) -&gt; bool:
+        &#34;&#34;&#34;
+        Metoda zjistuje, zda na dane pole utoci nejaka souperova figura
+        :param r: index radku sachovnice
+        :param c: index sloupce sachovnice
+        :return: True/False, zda na dane utoci souperova figura
+        &#34;&#34;&#34;
         self.change_turn()
         opponent_moves = self.generate_pseudo_legal_moves()
         self.change_turn()
@@ -946,6 +1039,9 @@ class ChessGame:
         return moves
 
     def check_end_result(self) -&gt; None:
+        &#34;&#34;&#34;
+        Metoda zjistuje a nastavuje vysledek partie.
+        &#34;&#34;&#34;
         if not self.has_valid_move():
             if self.in_check:
                 if self.white_to_move:
@@ -958,6 +1054,10 @@ class ChessGame:
             self.game_result = GameResult.INSUFFICIENT_MATERIAL_DRAW
 
     def get_result_string(self) -&gt; Union[str, None]:
+        &#34;&#34;&#34;
+        Metoda prevadi vysledek partie na textovou podobu.
+        :return: pokud je vysledek partie znam, vraci se textova reprezentace vysledku, jinak None
+        &#34;&#34;&#34;
         if self.game_result == GameResult.WHITE_WIN:
             return &#39;1:0&#39;
         elif self.game_result == GameResult.BLACK_WIN:
@@ -969,8 +1069,29 @@ class ChessGame:
         else:
             return None
 
-    def is_insufficient_material(self):
-        # TODO: dodelat
+    def get_naive_position_evaluation(self) -&gt; Tuple[int, int]:
+        &#34;&#34;&#34;
+        Metoda spocita pro kazdeho hrace hodnotu jeho figur. (pesec = 1, strelec = jezdec = 3, vez = 5, dama = 9)
+        :return: hodnoceni obou hracu
+        &#34;&#34;&#34;
+        white_points: int = 0
+        black_points: int = 0
+        for r in range(len(self.board)):
+            for c in range(len(self.board[r])):
+                piece = self.board[r][c]
+                if piece is not None:
+                    if piece.color == WHITE:
+                        white_points += get_piece_type_value(piece.piece_type)
+                    else:
+                        black_points += get_piece_type_value(piece.piece_type)
+        return white_points, black_points
+
+    # TODO: dodelat
+    def is_insufficient_material(self) -&gt; bool:
+        &#34;&#34;&#34;
+        Metoda zjistuje, zda je na sachovnici dostatek materialu pro vyhru jednoho z hracu. Zatim neni implementovano
+        :return: True/False hodnota, zda je na sachovnici dostatek materialu pro vyhru jednoho z hracu
+        &#34;&#34;&#34;
         return False</code></pre>
 </details>
 </section>
@@ -982,15 +1103,22 @@ class ChessGame:
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="rules.create_piece"><code class="name flex">
-<span>def <span class="ident">create_piece</span></span>(<span>color: <a title="rules.Color" href="#rules.Color">Color</a>, piece_type: <a title="rules.PieceType" href="#rules.PieceType">PieceType</a>)</span>
+<span>def <span class="ident">create_piece</span></span>(<span>color: <a title="rules.Color" href="#rules.Color">Color</a>, piece_type: <a title="rules.PieceType" href="#rules.PieceType">PieceType</a>) ‑> Union[BISHOP, KNIGHT, ROOK, QUEEN]</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Funkce vyuzivana pri promene pesce na jinou figuru.
+:param color: barva figury
+:param piece_type: typ figury</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def create_piece(color: Color, piece_type: PieceType):
+<pre><code class="python">def create_piece(color: Color, piece_type: PieceType) -&gt; Union[BISHOP, KNIGHT, ROOK, QUEEN]:
+    &#34;&#34;&#34;
+    Funkce vyuzivana pri promene pesce na jinou figuru.
+    :param color: barva figury
+    :param piece_type: typ figury
+    &#34;&#34;&#34;
     return {
         BISHOP: Bishop(color),
         KNIGHT: Knight(color),
@@ -999,16 +1127,54 @@ class ChessGame:
     }[piece_type]</code></pre>
 </details>
 </dd>
+<dt id="rules.get_piece_type_value"><code class="name flex">
+<span>def <span class="ident">get_piece_type_value</span></span>(<span>piece_type: <a title="rules.PieceType" href="#rules.PieceType">PieceType</a>) ‑> int</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Funkce prevadi typ figury na relativni hodnotu figury (slouzi pro bodove hodnoceni hracu).
+:param piece_type: typ figury
+:return: hodnota figury</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_piece_type_value(piece_type: PieceType) -&gt; int:
+    &#34;&#34;&#34;
+    Funkce prevadi typ figury na relativni hodnotu figury (slouzi pro bodove hodnoceni hracu).
+    :param piece_type: typ figury
+    :return: hodnota figury
+    &#34;&#34;&#34;
+    if piece_type == PAWN:
+        return 1
+    elif piece_type == KNIGHT:
+        return 3
+    elif piece_type == BISHOP:
+        return 3
+    elif piece_type == ROOK:
+        return 5
+    elif piece_type == QUEEN:
+        return 9
+    else:
+        return 0  # krale nechceme pocitat</code></pre>
+</details>
+</dd>
 <dt id="rules.get_promotion_piece_type"><code class="name flex">
 <span>def <span class="ident">get_promotion_piece_type</span></span>(<span>promotion_type_str: str) ‑> <a title="rules.PieceType" href="#rules.PieceType">PieceType</a></span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Funkce bere jako vstup typ promeny pesce zadane hracem a vraci typ figury.
+:param promotion_type_str: typ figury, ve kterou by chtel hrac promenit pesce
+:return: typ figury</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_promotion_piece_type(promotion_type_str: str) -&gt; PieceType:
+    &#34;&#34;&#34;
+    Funkce bere jako vstup typ promeny pesce zadane hracem a vraci typ figury.
+    :param promotion_type_str: typ figury, ve kterou by chtel hrac promenit pesce
+    :return: typ figury
+    &#34;&#34;&#34;
     if promotion_type_str == &#39;Q&#39;:
         return QUEEN
     elif promotion_type_str == &#39;N&#39;:
@@ -1025,12 +1191,19 @@ class ChessGame:
 <span>def <span class="ident">get_promotion_type_str</span></span>(<span>promotion_type: <a title="rules.PieceType" href="#rules.PieceType">PieceType</a>) ‑> str</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Funkce konvertuje typ figury na jeji symbol.
+:param promotion_type: typ figury
+:return: symbol figury</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_promotion_type_str(promotion_type: PieceType) -&gt; str:
+    &#34;&#34;&#34;
+    Funkce konvertuje typ figury na jeji symbol.
+    :param promotion_type: typ figury
+    :return: symbol figury
+    &#34;&#34;&#34;
     if promotion_type == QUEEN:
         return &#39;Q&#39;
     elif promotion_type == KNIGHT:
@@ -1053,8 +1226,7 @@ class ChessGame:
 <span>(</span><span>color: <a title="rules.Color" href="#rules.Color">Color</a>)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Helper class that provides a standard way to create an ABC using
-inheritance.</p></div>
+<div class="desc"><p>Abstraktni trida figury, z niz dedi jednotlive figury (pesec, jezdec, strelec, vez, dama, kral).</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1142,19 +1314,22 @@ ktera je spolecna pro strelce i damu
 <span>(</span><span>wk: bool, bk: bool, wq: bool, bq: bool)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Trida slouzi pouze pro udrzovani dat o pravech k obema typum rosady obou hracu.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class CastlingRights:
+    &#34;&#34;&#34;
+    Trida slouzi pouze pro udrzovani dat o pravech k obema typum rosady obou hracu.
+    &#34;&#34;&#34;
     def __init__(self, wk: bool, bk: bool, wq: bool, bq: bool):
         self.wk = wk  # wk - white kingside - pravo bileho na kingside rosadu
         self.bk = bk  # bk - black kingside - pravo cerneho na kingside rosadu
         self.wq = wq  # wq - white queenside - pravo bileho na queenside rosadu
         self.bq = bq  # bq - black queenside - pravo cerneho na queenside rosadu
 
-    def __str__(self):
+    def __str__(self) -&gt; str:
         return f&#39;wk: {self.wk}, bk: {self.bk}, wq: {self.wq}, bq: {self.bq}&#39;</code></pre>
 </details>
 </dd>
@@ -1162,12 +1337,15 @@ ktera je spolecna pro strelce i damu
 <span>class <span class="ident">ChessGame</span></span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Trida pro sachovou partii.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class ChessGame:
+    &#34;&#34;&#34;
+    Trida pro sachovou partii.
+    &#34;&#34;&#34;
     def __init__(self) -&gt; None:
         self.board: List[List[Union[Piece, None]]] = [
             [Rook(BLACK), Knight(BLACK), Bishop(BLACK), Queen(BLACK), King(BLACK), Bishop(BLACK), Knight(BLACK),
@@ -1188,8 +1366,8 @@ ktera je spolecna pro strelce i damu
         self.white_king_position: Tuple[int, int] = (7, 4)
         self.black_king_position: Tuple[int, int] = (0, 4)
         self.in_check = False
-        self.pins = []
-        self.checks = []
+        self.pins: List[Tuple[int, int]] = []
+        self.checks: List[Tuple[int, int]] = []
         self.game_result: Union[GameResult, None] = None
         # list souradnic poli, kde bylo mozne brat mimochodem - je potreba udrzovat list jako vyvoj tohoto
         # pole kvuli vraceni tahu, abychom mohli obnovovat spravne pole pro brani mimochodem
@@ -1247,14 +1425,14 @@ ktera je spolecna pro strelce i damu
         # pravo na rosadu
         self.update_castling_rights(move)
 
-    def undo_move(self) -&gt; None:
+    def undo_move(self) -&gt; Union[Move, None]:
         &#34;&#34;&#34;
         Metoda vraci tah. Tah si vezme ze seznamu tahu, vyhozenou figuru (pokud nejaka je) vrati zpatky a figuru,
         ktera tahla vrati na puvodni pole. Dale prehodi hrace, ktery je na tahu. Pokud byl tah specialni (rosada,
         en passant nebo promena pesce), musime vse dat do puvodniho stavu, k tomu mame napr. log prav na rosadu
         &#34;&#34;&#34;
         if len(self.move_stack) == 0:
-            pass
+            return None
         move = self.move_stack.pop()
         self.board[move.start_row][move.start_col] = move.piece_moved
         self.board[move.end_row][move.end_col] = move.piece_captured
@@ -1280,10 +1458,19 @@ ktera je spolecna pro strelce i damu
                 self.board[move.end_row][move.end_col + 1] = None
         self.game_result = None
 
-    def change_turn(self):
+        return move
+
+    def change_turn(self) -&gt; None:
+        &#34;&#34;&#34;
+        Metoda prehazuje hrace na tahu.
+        &#34;&#34;&#34;
         self.white_to_move = not self.white_to_move
 
-    def update_castling_rights(self, move: Move):
+    def update_castling_rights(self, move: Move) -&gt; None:
+        &#34;&#34;&#34;
+        Metoda aktualizuje prava na rosady pro oba hrace
+        :param move: tah, ktery provadime
+        &#34;&#34;&#34;
         # nacteme si posledni prava na rosadu
         current_castling_rights = self.castling_rights_log[-1]
         if move.piece_moved.piece_type == KING:
@@ -1469,13 +1656,23 @@ ktera je spolecna pro strelce i damu
                     checks.append((end_row, end_col, knight_move[0], knight_move[1]))
         return in_check, pins, checks
 
-    def has_valid_move(self):
+    def has_valid_move(self) -&gt; bool:
+        &#34;&#34;&#34;
+        Metoda zjistuje, zda ma hrac alespon jeden legalni tah. Slouzi pro urcovani vysledku partie.
+        :return: True/False hodnota, zda ma hrac alespon jeden legalni tah
+        &#34;&#34;&#34;
         moves = self.generate_legal_moves()
         if len(moves) == 0:
             return False
         return True
 
     def is_square_attacked(self, r: int, c: int) -&gt; bool:
+        &#34;&#34;&#34;
+        Metoda zjistuje, zda na dane pole utoci nejaka souperova figura
+        :param r: index radku sachovnice
+        :param c: index sloupce sachovnice
+        :return: True/False, zda na dane utoci souperova figura
+        &#34;&#34;&#34;
         self.change_turn()
         opponent_moves = self.generate_pseudo_legal_moves()
         self.change_turn()
@@ -1500,6 +1697,9 @@ ktera je spolecna pro strelce i damu
         return moves
 
     def check_end_result(self) -&gt; None:
+        &#34;&#34;&#34;
+        Metoda zjistuje a nastavuje vysledek partie.
+        &#34;&#34;&#34;
         if not self.has_valid_move():
             if self.in_check:
                 if self.white_to_move:
@@ -1512,6 +1712,10 @@ ktera je spolecna pro strelce i damu
             self.game_result = GameResult.INSUFFICIENT_MATERIAL_DRAW
 
     def get_result_string(self) -&gt; Union[str, None]:
+        &#34;&#34;&#34;
+        Metoda prevadi vysledek partie na textovou podobu.
+        :return: pokud je vysledek partie znam, vraci se textova reprezentace vysledku, jinak None
+        &#34;&#34;&#34;
         if self.game_result == GameResult.WHITE_WIN:
             return &#39;1:0&#39;
         elif self.game_result == GameResult.BLACK_WIN:
@@ -1523,22 +1727,46 @@ ktera je spolecna pro strelce i damu
         else:
             return None
 
-    def is_insufficient_material(self):
-        # TODO: dodelat
+    def get_naive_position_evaluation(self) -&gt; Tuple[int, int]:
+        &#34;&#34;&#34;
+        Metoda spocita pro kazdeho hrace hodnotu jeho figur. (pesec = 1, strelec = jezdec = 3, vez = 5, dama = 9)
+        :return: hodnoceni obou hracu
+        &#34;&#34;&#34;
+        white_points: int = 0
+        black_points: int = 0
+        for r in range(len(self.board)):
+            for c in range(len(self.board[r])):
+                piece = self.board[r][c]
+                if piece is not None:
+                    if piece.color == WHITE:
+                        white_points += get_piece_type_value(piece.piece_type)
+                    else:
+                        black_points += get_piece_type_value(piece.piece_type)
+        return white_points, black_points
+
+    # TODO: dodelat
+    def is_insufficient_material(self) -&gt; bool:
+        &#34;&#34;&#34;
+        Metoda zjistuje, zda je na sachovnici dostatek materialu pro vyhru jednoho z hracu. Zatim neni implementovano
+        :return: True/False hodnota, zda je na sachovnici dostatek materialu pro vyhru jednoho z hracu
+        &#34;&#34;&#34;
         return False</code></pre>
 </details>
 <h3>Methods</h3>
 <dl>
 <dt id="rules.ChessGame.change_turn"><code class="name flex">
-<span>def <span class="ident">change_turn</span></span>(<span>self)</span>
+<span>def <span class="ident">change_turn</span></span>(<span>self) ‑> NoneType</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Metoda prehazuje hrace na tahu.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def change_turn(self):
+<pre><code class="python">def change_turn(self) -&gt; None:
+    &#34;&#34;&#34;
+    Metoda prehazuje hrace na tahu.
+    &#34;&#34;&#34;
     self.white_to_move = not self.white_to_move</code></pre>
 </details>
 </dd>
@@ -1546,12 +1774,15 @@ ktera je spolecna pro strelce i damu
 <span>def <span class="ident">check_end_result</span></span>(<span>self) ‑> NoneType</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Metoda zjistuje a nastavuje vysledek partie.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def check_end_result(self) -&gt; None:
+    &#34;&#34;&#34;
+    Metoda zjistuje a nastavuje vysledek partie.
+    &#34;&#34;&#34;
     if not self.has_valid_move():
         if self.in_check:
             if self.white_to_move:
@@ -1824,16 +2055,49 @@ se tahem nedostaneme do sachu.
     return moves</code></pre>
 </details>
 </dd>
+<dt id="rules.ChessGame.get_naive_position_evaluation"><code class="name flex">
+<span>def <span class="ident">get_naive_position_evaluation</span></span>(<span>self) ‑> Tuple[int, int]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Metoda spocita pro kazdeho hrace hodnotu jeho figur. (pesec = 1, strelec = jezdec = 3, vez = 5, dama = 9)
+:return: hodnoceni obou hracu</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_naive_position_evaluation(self) -&gt; Tuple[int, int]:
+    &#34;&#34;&#34;
+    Metoda spocita pro kazdeho hrace hodnotu jeho figur. (pesec = 1, strelec = jezdec = 3, vez = 5, dama = 9)
+    :return: hodnoceni obou hracu
+    &#34;&#34;&#34;
+    white_points: int = 0
+    black_points: int = 0
+    for r in range(len(self.board)):
+        for c in range(len(self.board[r])):
+            piece = self.board[r][c]
+            if piece is not None:
+                if piece.color == WHITE:
+                    white_points += get_piece_type_value(piece.piece_type)
+                else:
+                    black_points += get_piece_type_value(piece.piece_type)
+    return white_points, black_points</code></pre>
+</details>
+</dd>
 <dt id="rules.ChessGame.get_result_string"><code class="name flex">
 <span>def <span class="ident">get_result_string</span></span>(<span>self) ‑> Union[str, NoneType]</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Metoda prevadi vysledek partie na textovou podobu.
+:return: pokud je vysledek partie znam, vraci se textova reprezentace vysledku, jinak None</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_result_string(self) -&gt; Union[str, None]:
+    &#34;&#34;&#34;
+    Metoda prevadi vysledek partie na textovou podobu.
+    :return: pokud je vysledek partie znam, vraci se textova reprezentace vysledku, jinak None
+    &#34;&#34;&#34;
     if self.game_result == GameResult.WHITE_WIN:
         return &#39;1:0&#39;
     elif self.game_result == GameResult.BLACK_WIN:
@@ -1847,15 +2111,20 @@ se tahem nedostaneme do sachu.
 </details>
 </dd>
 <dt id="rules.ChessGame.has_valid_move"><code class="name flex">
-<span>def <span class="ident">has_valid_move</span></span>(<span>self)</span>
+<span>def <span class="ident">has_valid_move</span></span>(<span>self) ‑> bool</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Metoda zjistuje, zda ma hrac alespon jeden legalni tah. Slouzi pro urcovani vysledku partie.
+:return: True/False hodnota, zda ma hrac alespon jeden legalni tah</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def has_valid_move(self):
+<pre><code class="python">def has_valid_move(self) -&gt; bool:
+    &#34;&#34;&#34;
+    Metoda zjistuje, zda ma hrac alespon jeden legalni tah. Slouzi pro urcovani vysledku partie.
+    :return: True/False hodnota, zda ma hrac alespon jeden legalni tah
+    &#34;&#34;&#34;
     moves = self.generate_legal_moves()
     if len(moves) == 0:
         return False
@@ -1863,16 +2132,20 @@ se tahem nedostaneme do sachu.
 </details>
 </dd>
 <dt id="rules.ChessGame.is_insufficient_material"><code class="name flex">
-<span>def <span class="ident">is_insufficient_material</span></span>(<span>self)</span>
+<span>def <span class="ident">is_insufficient_material</span></span>(<span>self) ‑> bool</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Metoda zjistuje, zda je na sachovnici dostatek materialu pro vyhru jednoho z hracu. Zatim neni implementovano
+:return: True/False hodnota, zda je na sachovnici dostatek materialu pro vyhru jednoho z hracu</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def is_insufficient_material(self):
-    # TODO: dodelat
+<pre><code class="python">def is_insufficient_material(self) -&gt; bool:
+    &#34;&#34;&#34;
+    Metoda zjistuje, zda je na sachovnici dostatek materialu pro vyhru jednoho z hracu. Zatim neni implementovano
+    :return: True/False hodnota, zda je na sachovnici dostatek materialu pro vyhru jednoho z hracu
+    &#34;&#34;&#34;
     return False</code></pre>
 </details>
 </dd>
@@ -1880,12 +2153,21 @@ se tahem nedostaneme do sachu.
 <span>def <span class="ident">is_square_attacked</span></span>(<span>self, r: int, c: int) ‑> bool</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Metoda zjistuje, zda na dane pole utoci nejaka souperova figura
+:param r: index radku sachovnice
+:param c: index sloupce sachovnice
+:return: True/False, zda na dane utoci souperova figura</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def is_square_attacked(self, r: int, c: int) -&gt; bool:
+    &#34;&#34;&#34;
+    Metoda zjistuje, zda na dane pole utoci nejaka souperova figura
+    :param r: index radku sachovnice
+    :param c: index sloupce sachovnice
+    :return: True/False, zda na dane utoci souperova figura
+    &#34;&#34;&#34;
     self.change_turn()
     opponent_moves = self.generate_pseudo_legal_moves()
     self.change_turn()
@@ -1896,7 +2178,7 @@ se tahem nedostaneme do sachu.
 </details>
 </dd>
 <dt id="rules.ChessGame.undo_move"><code class="name flex">
-<span>def <span class="ident">undo_move</span></span>(<span>self) ‑> NoneType</span>
+<span>def <span class="ident">undo_move</span></span>(<span>self) ‑> Union[<a title="rules.Move" href="#rules.Move">Move</a>, NoneType]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Metoda vraci tah. Tah si vezme ze seznamu tahu, vyhozenou figuru (pokud nejaka je) vrati zpatky a figuru,
@@ -1906,14 +2188,14 @@ en passant nebo promena pesce), musime vse dat do puvodniho stavu, k tomu mame n
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def undo_move(self) -&gt; None:
+<pre><code class="python">def undo_move(self) -&gt; Union[Move, None]:
     &#34;&#34;&#34;
     Metoda vraci tah. Tah si vezme ze seznamu tahu, vyhozenou figuru (pokud nejaka je) vrati zpatky a figuru,
     ktera tahla vrati na puvodni pole. Dale prehodi hrace, ktery je na tahu. Pokud byl tah specialni (rosada,
     en passant nebo promena pesce), musime vse dat do puvodniho stavu, k tomu mame napr. log prav na rosadu
     &#34;&#34;&#34;
     if len(self.move_stack) == 0:
-        pass
+        return None
     move = self.move_stack.pop()
     self.board[move.start_row][move.start_col] = move.piece_moved
     self.board[move.end_row][move.end_col] = move.piece_captured
@@ -1937,19 +2219,26 @@ en passant nebo promena pesce), musime vse dat do puvodniho stavu, k tomu mame n
         else:  # queenside
             self.board[move.end_row][move.end_col - 2] = self.board[move.end_row][move.end_col + 1]
             self.board[move.end_row][move.end_col + 1] = None
-    self.game_result = None</code></pre>
+    self.game_result = None
+
+    return move</code></pre>
 </details>
 </dd>
 <dt id="rules.ChessGame.update_castling_rights"><code class="name flex">
-<span>def <span class="ident">update_castling_rights</span></span>(<span>self, move: <a title="rules.Move" href="#rules.Move">Move</a>)</span>
+<span>def <span class="ident">update_castling_rights</span></span>(<span>self, move: <a title="rules.Move" href="#rules.Move">Move</a>) ‑> NoneType</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Metoda aktualizuje prava na rosady pro oba hrace
+:param move: tah, ktery provadime</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def update_castling_rights(self, move: Move):
+<pre><code class="python">def update_castling_rights(self, move: Move) -&gt; None:
+    &#34;&#34;&#34;
+    Metoda aktualizuje prava na rosady pro oba hrace
+    :param move: tah, ktery provadime
+    &#34;&#34;&#34;
     # nacteme si posledni prava na rosadu
     current_castling_rights = self.castling_rights_log[-1]
     if move.piece_moved.piece_type == KING:
@@ -2032,12 +2321,15 @@ en passant nebo promena pesce), musime vse dat do puvodniho stavu, k tomu mame n
 <span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>An enumeration.</p></div>
+<div class="desc"><p>Enum vsechn moznych vysledku sachove partie. Implementovany jsou zatim prvni tri.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class GameResult(enum.Enum):
+    &#34;&#34;&#34;
+    Enum vsechn moznych vysledku sachove partie. Implementovany jsou zatim prvni tri.
+    &#34;&#34;&#34;
     WHITE_WIN = 0,
     BLACK_WIN = 1,
     STALEMATE = 2,
@@ -2082,8 +2374,7 @@ en passant nebo promena pesce), musime vse dat do puvodniho stavu, k tomu mame n
 <span>(</span><span>color: <a title="rules.Color" href="#rules.Color">Color</a>)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Helper class that provides a standard way to create an ABC using
-inheritance.</p></div>
+<div class="desc"><p>Abstraktni trida figury, z niz dedi jednotlive figury (pesec, jezdec, strelec, vez, dama, kral).</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2276,8 +2567,7 @@ metode generate_legal_moves(). Zde na rozdil od ostatnich figur neresime piny.
 <span>(</span><span>color: <a title="rules.Color" href="#rules.Color">Color</a>)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Helper class that provides a standard way to create an ABC using
-inheritance.</p></div>
+<div class="desc"><p>Abstraktni trida figury, z niz dedi jednotlive figury (pesec, jezdec, strelec, vez, dama, kral).</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2285,10 +2575,6 @@ inheritance.</p></div>
 <pre><code class="python">class Knight(Piece):
     piece_type = PieceType.KNIGHT
     symbol = &#39;N&#39;
-
-    &#39;&#39;&#39;
-    Generuje vsechny kandidaty na tahy pro jezdce. Zde musime prozkoumat vsech 8 moznych poli, kam muze jezdec tahnout
-    &#39;&#39;&#39;
 
     def generate_pseudo_legal_moves(self, r: int, c: int, game: ChessGame) -&gt; List[Move]:
         &#34;&#34;&#34;
@@ -2333,7 +2619,7 @@ inheritance.</p></div>
 </dd>
 <dt id="rules.Knight.symbol"><code class="name">var <span class="ident">symbol</span></code></dt>
 <dd>
-<div class="desc"><p>Generuje vsechny kandidaty na tahy pro jezdce. Zde musime prozkoumat vsech 8 moznych poli, kam muze jezdec tahnout</p></div>
+<div class="desc"></div>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -2399,12 +2685,15 @@ kam muze jezdec tahnout
 <span>(</span><span>from_square: Tuple[int, int], to_square: Tuple[int, int], board: List[List[<a title="rules.Piece" href="#rules.Piece">Piece</a>]], promotion_type: <a title="rules.PieceType" href="#rules.PieceType">PieceType</a> = PieceType.QUEEN, is_enpassant: bool = False, is_castle: bool = False)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Trida pro reprezentaci sachoveho tahu. V soucasne dobe implementovana pouze standardni notace (SAN).</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class Move:
+    &#34;&#34;&#34;
+    Trida pro reprezentaci sachoveho tahu. V soucasne dobe implementovana pouze standardni notace (SAN).
+    &#34;&#34;&#34;
     ranks_to_rows = {&#39;1&#39;: 7, &#39;2&#39;: 6, &#39;3&#39;: 5, &#39;4&#39;: 4, &#39;5&#39;: 3, &#39;6&#39;: 2, &#39;7&#39;: 1, &#39;8&#39;: 0}
     rows_to_ranks = {v: k for k, v in ranks_to_rows.items()}
     files_to_cols = {&#39;a&#39;: 0, &#39;b&#39;: 1, &#39;c&#39;: 2, &#39;d&#39;: 3, &#39;e&#39;: 4, &#39;f&#39;: 5, &#39;g&#39;: 6, &#39;h&#39;: 7}
@@ -2435,17 +2724,23 @@ kam muze jezdec tahnout
                 self.piece_captured = board[self.end_row - 1][self.end_col]
         # rosada
         self.is_castle = is_castle
-        # anotace - priradime pozdeji
+        # notace tahu - priradime pozdeji, potrebujeme k tomu znat vsechny mozne tahy daneho pultahu kvuli
+        # nejednoznacnym tahum
         self.san = None
 
-    def __eq__(self, other) -&gt; bool:
+    def __eq__(self, other: Move) -&gt; bool:
+        &#34;&#34;&#34;
+        Metoda porovnava dva tahy podle jejich hash hodnoty.
+        :param other: Tah, se kterym srovnavame
+        :return: True/False zda jsou tahy stejne
+        &#34;&#34;&#34;
         if isinstance(other, Move):
             return hash(self) == hash(other)
         return False
 
     def __hash__(self) -&gt; int:
         &#34;&#34;&#34;
-        Metoda pocita hodnotu tahu pro porovnavani tahu, zda jsou stejne
+        Metoda pocita hodnotu tahu pro porovnavani tahu, zda jsou stejne.
         :return: hodnota tahu pro porovnavani (hashovani)
         &#34;&#34;&#34;
         promotion_type_value = 0
@@ -2462,13 +2757,26 @@ kam muze jezdec tahnout
         return self.start_row * 10000 + self.start_col * 1000 + self.end_row * 100 + self.end_col * 10 + promotion_type_value
 
     def __str__(self) -&gt; str:
+        &#34;&#34;&#34;
+        Metoda vraci textovou reprezentaci tahu pomoci SAN notace.
+        :return: Textova reprezentace tahu pomoci SAN notace
+        &#34;&#34;&#34;
         return self.san
 
     def __repr__(self) -&gt; str:
+        &#34;&#34;&#34;
+        Metoda vraci textovou reprezentaci tahu pomoci SAN notace.
+        :return: Textova reprezentace tahu pomoci SAN notace
+        &#34;&#34;&#34;
         return self.san
 
     @classmethod
     def validate_san(cls, san: str) -&gt; bool:
+        &#34;&#34;&#34;
+        Metoda validuje rucni vstup, zda je tahem podle sachove notace.
+        :param san: zapis tahu od hrace
+        :return: True/False, zda je tah podle sachove notace
+        &#34;&#34;&#34;
         regex = re.compile(r&#39;&#39;&#39;
         (
             0-0(?:-0)?  # rosady
@@ -2483,11 +2791,11 @@ kam muze jezdec tahnout
         return match is not None
 
     @classmethod
-    def annotate_moves_san(cls, moves) -&gt; None:
+    def annotate_moves_san(cls, moves: List[Move]) -&gt; None:
         &#34;&#34;&#34;
         Metoda vyplnuje SAN (Standard Algebraic Notation) ke kazdemu tahu, ktery dostane na vstupu. Nemuzeme
         delat pro jednotlive tahy, protoze potrebujeme znat vsechny tahy z daneho pultahu kvuli moznym nejednoznacnym
-        tahum (kdy mohou dve figury skocit na stejne pole)
+        tahum (kdy mohou dve figury skocit na stejne pole).
         :param moves: Tahy k anotaci (vsechny legalni tahy daneho pultahu)
         &#34;&#34;&#34;
         for move in moves:
@@ -2525,7 +2833,7 @@ kam muze jezdec tahnout
     def get_ambiguous_piece_identification(cls, move: Move, moves: List[Move]) -&gt; str:
         &#34;&#34;&#34;
         Metoda zkouma tah, jestli je jednoznacny, to znamena, jestli nemuze vice figur skocit na stejne pole
-        a v pripade, ze tah vyhodnoti jako nejednoznacny, tak se snazi najit spravnou identifikaci figury
+        a v pripade, ze tah vyhodnoti jako nejednoznacny, tak se snazi najit spravnou identifikaci figury.
         :param move: Tah, ktery zkoumame
         :param moves: Vsechny tahy v danem pultahu
         :return: Identifikace figury, tj. sloupec nebo radek napr. &#34;a&#34; nebo &#34;3&#34;
@@ -2573,23 +2881,23 @@ kam muze jezdec tahnout
 <h3>Static methods</h3>
 <dl>
 <dt id="rules.Move.annotate_moves_san"><code class="name flex">
-<span>def <span class="ident">annotate_moves_san</span></span>(<span>moves) ‑> NoneType</span>
+<span>def <span class="ident">annotate_moves_san</span></span>(<span>moves: List[<a title="rules.Move" href="#rules.Move">Move</a>]) ‑> NoneType</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Metoda vyplnuje SAN (Standard Algebraic Notation) ke kazdemu tahu, ktery dostane na vstupu. Nemuzeme
 delat pro jednotlive tahy, protoze potrebujeme znat vsechny tahy z daneho pultahu kvuli moznym nejednoznacnym
-tahum (kdy mohou dve figury skocit na stejne pole)
+tahum (kdy mohou dve figury skocit na stejne pole).
 :param moves: Tahy k anotaci (vsechny legalni tahy daneho pultahu)</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@classmethod
-def annotate_moves_san(cls, moves) -&gt; None:
+def annotate_moves_san(cls, moves: List[Move]) -&gt; None:
     &#34;&#34;&#34;
     Metoda vyplnuje SAN (Standard Algebraic Notation) ke kazdemu tahu, ktery dostane na vstupu. Nemuzeme
     delat pro jednotlive tahy, protoze potrebujeme znat vsechny tahy z daneho pultahu kvuli moznym nejednoznacnym
-    tahum (kdy mohou dve figury skocit na stejne pole)
+    tahum (kdy mohou dve figury skocit na stejne pole).
     :param moves: Tahy k anotaci (vsechny legalni tahy daneho pultahu)
     &#34;&#34;&#34;
     for move in moves:
@@ -2629,7 +2937,7 @@ def annotate_moves_san(cls, moves) -&gt; None:
 </code></dt>
 <dd>
 <div class="desc"><p>Metoda zkouma tah, jestli je jednoznacny, to znamena, jestli nemuze vice figur skocit na stejne pole
-a v pripade, ze tah vyhodnoti jako nejednoznacny, tak se snazi najit spravnou identifikaci figury
+a v pripade, ze tah vyhodnoti jako nejednoznacny, tak se snazi najit spravnou identifikaci figury.
 :param move: Tah, ktery zkoumame
 :param moves: Vsechny tahy v danem pultahu
 :return: Identifikace figury, tj. sloupec nebo radek napr. "a" nebo "3"</p></div>
@@ -2641,7 +2949,7 @@ a v pripade, ze tah vyhodnoti jako nejednoznacny, tak se snazi najit spravnou id
 def get_ambiguous_piece_identification(cls, move: Move, moves: List[Move]) -&gt; str:
     &#34;&#34;&#34;
     Metoda zkouma tah, jestli je jednoznacny, to znamena, jestli nemuze vice figur skocit na stejne pole
-    a v pripade, ze tah vyhodnoti jako nejednoznacny, tak se snazi najit spravnou identifikaci figury
+    a v pripade, ze tah vyhodnoti jako nejednoznacny, tak se snazi najit spravnou identifikaci figury.
     :param move: Tah, ktery zkoumame
     :param moves: Vsechny tahy v danem pultahu
     :return: Identifikace figury, tj. sloupec nebo radek napr. &#34;a&#34; nebo &#34;3&#34;
@@ -2664,13 +2972,20 @@ def get_ambiguous_piece_identification(cls, move: Move, moves: List[Move]) -&gt;
 <span>def <span class="ident">validate_san</span></span>(<span>san: str) ‑> bool</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Metoda validuje rucni vstup, zda je tahem podle sachove notace.
+:param san: zapis tahu od hrace
+:return: True/False, zda je tah podle sachove notace</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@classmethod
 def validate_san(cls, san: str) -&gt; bool:
+    &#34;&#34;&#34;
+    Metoda validuje rucni vstup, zda je tahem podle sachove notace.
+    :param san: zapis tahu od hrace
+    :return: True/False, zda je tah podle sachove notace
+    &#34;&#34;&#34;
     regex = re.compile(r&#39;&#39;&#39;
     (
         0-0(?:-0)?  # rosady
@@ -2692,8 +3007,7 @@ def validate_san(cls, san: str) -&gt; bool:
 <span>(</span><span>color: <a title="rules.Color" href="#rules.Color">Color</a>)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Helper class that provides a standard way to create an ABC using
-inheritance.</p></div>
+<div class="desc"><p>Abstraktni trida figury, z niz dedi jednotlive figury (pesec, jezdec, strelec, vez, dama, kral).</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2777,7 +3091,7 @@ inheritance.</p></div>
                      is_enpassant: bool = False) -&gt; None:
         &#34;&#34;&#34;
         Metoda je ciste kvuli tomu, abychom mohli pridat vsechny mozne promeny pesce, jinak by slo tahy pridavat
-        primo v metode generate_pseudo_legal_moves
+        primo v metode generate_pseudo_legal_moves.
         &#34;&#34;&#34;
         if (game.white_to_move and end_row &gt; 0) or (not game.white_to_move and end_row &lt; 7):
             moves.append(Move((start_row, start_col), (end_row, end_col), game.board, is_enpassant=is_enpassant))
@@ -2810,7 +3124,7 @@ inheritance.</p></div>
 </code></dt>
 <dd>
 <div class="desc"><p>Metoda je ciste kvuli tomu, abychom mohli pridat vsechny mozne promeny pesce, jinak by slo tahy pridavat
-primo v metode generate_pseudo_legal_moves</p></div>
+primo v metode generate_pseudo_legal_moves.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2820,7 +3134,7 @@ def append_moves(start_row: int, start_col: int, end_row: int, end_col: int, gam
                  is_enpassant: bool = False) -&gt; None:
     &#34;&#34;&#34;
     Metoda je ciste kvuli tomu, abychom mohli pridat vsechny mozne promeny pesce, jinak by slo tahy pridavat
-    primo v metode generate_pseudo_legal_moves
+    primo v metode generate_pseudo_legal_moves.
     &#34;&#34;&#34;
     if (game.white_to_move and end_row &gt; 0) or (not game.white_to_move and end_row &lt; 7):
         moves.append(Move((start_row, start_col), (end_row, end_col), game.board, is_enpassant=is_enpassant))
@@ -2935,14 +3249,15 @@ brani doprava a doleva, brani mimochodem i promenu pesce
 <span>(</span><span>color: <a title="rules.Color" href="#rules.Color">Color</a>)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Helper class that provides a standard way to create an ABC using
-inheritance.</p></div>
+<div class="desc"><p>Abstraktni trida figury, z niz dedi jednotlive figury (pesec, jezdec, strelec, vez, dama, kral).</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class Piece(ABC):
-
+    &#34;&#34;&#34;
+    Abstraktni trida figury, z niz dedi jednotlive figury (pesec, jezdec, strelec, vez, dama, kral).
+    &#34;&#34;&#34;
     # abstraktni property, musi vyplnit potomek
     @property
     def piece_type(self) -&gt; PieceType:
@@ -2957,11 +3272,22 @@ inheritance.</p></div>
         self.color = color
 
     def __str__(self) -&gt; str:
+        &#34;&#34;&#34;
+        Metoda vraci symbol figury.
+        :return: symbol figury
+        &#34;&#34;&#34;
         return f&#39;{self.symbol}&#39; if self.color == WHITE else f&#39;.{self.symbol}.&#39;
 
     # abstraktni metoda pro generovani pseudo-legalnich tahu, musi vyplnit potomci
     @abstractmethod
     def generate_pseudo_legal_moves(self, r: int, c: int, game: ChessGame) -&gt; List[Move]:
+        &#34;&#34;&#34;
+        Abstraktni metoda pro generovani pseudo-legalnich tahu, musi vyplnit potomci.
+        :param r: index radku sachovnice
+        :param c: index sloupce sachovnice
+        :param game: objekt partie
+        :return: list pseudo-legalnich tahu
+        &#34;&#34;&#34;
         pass
 
     @staticmethod
@@ -3197,13 +3523,24 @@ def symbol(self) -&gt; str:
 <span>def <span class="ident">generate_pseudo_legal_moves</span></span>(<span>self, r: int, c: int, game: <a title="rules.ChessGame" href="#rules.ChessGame">ChessGame</a>) ‑> List[<a title="rules.Move" href="#rules.Move">Move</a>]</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Abstraktni metoda pro generovani pseudo-legalnich tahu, musi vyplnit potomci.
+:param r: index radku sachovnice
+:param c: index sloupce sachovnice
+:param game: objekt partie
+:return: list pseudo-legalnich tahu</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@abstractmethod
 def generate_pseudo_legal_moves(self, r: int, c: int, game: ChessGame) -&gt; List[Move]:
+    &#34;&#34;&#34;
+    Abstraktni metoda pro generovani pseudo-legalnich tahu, musi vyplnit potomci.
+    :param r: index radku sachovnice
+    :param c: index sloupce sachovnice
+    :param game: objekt partie
+    :return: list pseudo-legalnich tahu
+    &#34;&#34;&#34;
     pass</code></pre>
 </details>
 </dd>
@@ -3264,8 +3601,7 @@ def generate_pseudo_legal_moves(self, r: int, c: int, game: ChessGame) -&gt; Lis
 <span>(</span><span>color: <a title="rules.Color" href="#rules.Color">Color</a>)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Helper class that provides a standard way to create an ABC using
-inheritance.</p></div>
+<div class="desc"><p>Abstraktni trida figury, z niz dedi jednotlive figury (pesec, jezdec, strelec, vez, dama, kral).</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -3358,8 +3694,7 @@ damu.
 <span>(</span><span>color: <a title="rules.Color" href="#rules.Color">Color</a>)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Helper class that provides a standard way to create an ABC using
-inheritance.</p></div>
+<div class="desc"><p>Abstraktni trida figury, z niz dedi jednotlive figury (pesec, jezdec, strelec, vez, dama, kral).</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -3371,7 +3706,7 @@ inheritance.</p></div>
     def generate_pseudo_legal_moves(self, r: int, c: int, game: ChessGame) -&gt; List[Move]:
         &#34;&#34;&#34;
         Metoda generuje vsechny pseudo-legalni tahy veze. Zde pouze pouzijeme metodu pro generovani tahu po primkach,
-        ktera je spolecna pro vez i damu
+        ktera je spolecna pro vez i damu.
         :param r: index radku sachovnice
         :param c: index sloupce sachovnice
         :param game: objekt partie
@@ -3406,7 +3741,7 @@ inheritance.</p></div>
 </code></dt>
 <dd>
 <div class="desc"><p>Metoda generuje vsechny pseudo-legalni tahy veze. Zde pouze pouzijeme metodu pro generovani tahu po primkach,
-ktera je spolecna pro vez i damu
+ktera je spolecna pro vez i damu.
 :param r: index radku sachovnice
 :param c: index sloupce sachovnice
 :param game: objekt partie
@@ -3418,7 +3753,7 @@ ktera je spolecna pro vez i damu
 <pre><code class="python">def generate_pseudo_legal_moves(self, r: int, c: int, game: ChessGame) -&gt; List[Move]:
     &#34;&#34;&#34;
     Metoda generuje vsechny pseudo-legalni tahy veze. Zde pouze pouzijeme metodu pro generovani tahu po primkach,
-    ktera je spolecna pro vez i damu
+    ktera je spolecna pro vez i damu.
     :param r: index radku sachovnice
     :param c: index sloupce sachovnice
     :param game: objekt partie
@@ -3454,6 +3789,7 @@ ktera je spolecna pro vez i damu
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
 <li><code><a title="rules.create_piece" href="#rules.create_piece">create_piece</a></code></li>
+<li><code><a title="rules.get_piece_type_value" href="#rules.get_piece_type_value">get_piece_type_value</a></code></li>
 <li><code><a title="rules.get_promotion_piece_type" href="#rules.get_promotion_piece_type">get_promotion_piece_type</a></code></li>
 <li><code><a title="rules.get_promotion_type_str" href="#rules.get_promotion_type_str">get_promotion_type_str</a></code></li>
 </ul>
@@ -3480,6 +3816,7 @@ ktera je spolecna pro vez i damu
 <li><code><a title="rules.ChessGame.do_move" href="#rules.ChessGame.do_move">do_move</a></code></li>
 <li><code><a title="rules.ChessGame.generate_legal_moves" href="#rules.ChessGame.generate_legal_moves">generate_legal_moves</a></code></li>
 <li><code><a title="rules.ChessGame.generate_pseudo_legal_moves" href="#rules.ChessGame.generate_pseudo_legal_moves">generate_pseudo_legal_moves</a></code></li>
+<li><code><a title="rules.ChessGame.get_naive_position_evaluation" href="#rules.ChessGame.get_naive_position_evaluation">get_naive_position_evaluation</a></code></li>
 <li><code><a title="rules.ChessGame.get_result_string" href="#rules.ChessGame.get_result_string">get_result_string</a></code></li>
 <li><code><a title="rules.ChessGame.has_valid_move" href="#rules.ChessGame.has_valid_move">has_valid_move</a></code></li>
 <li><code><a title="rules.ChessGame.is_insufficient_material" href="#rules.ChessGame.is_insufficient_material">is_insufficient_material</a></code></li>

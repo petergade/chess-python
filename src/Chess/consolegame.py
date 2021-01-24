@@ -7,7 +7,6 @@ class ConsoleGame:
 
     def __init__(self):
         self.chess_game = ChessGame()
-        self.info_message_log = []  # abychom pri vraceni tahu vedeli, co mame vypsat za hlasku
 
     def print_all_moves(self) -> None:
         """
@@ -84,11 +83,15 @@ class ConsoleGame:
         s += '|'
         print(s)
 
-    def print_player_points(self):
+    def print_player_points(self) -> None:
+        """
+        Metoda vypise bodove hodnoceni hracu
+        :return:
+        """
         white_points, black_points = self.chess_game.get_naive_position_evaluation()
         print(f'Player points - white: {white_points}, black: {black_points}')
 
-    def print_info_message(self, move, move_undone: bool=False) -> None:
+    def print_info_message(self, move: Move, move_undone: bool = False) -> None:
         """
         Metoda vypise, ktery tah byl zahrany a pripadne, zda vzniknul tahem sach, sach mat nebo pat
         :param move: zahrany tah
@@ -156,9 +159,12 @@ class ConsoleGame:
                              'Ng3', 'f5', 'Kh1', 'f4', 'Qd2', 'Nd4', 'Qd3', 'f3', 'c3', 'Qg2']
         for move in sample_game_moves:
             self.play_move(move)
-            #time.sleep(0.2)
+            # time.sleep(0.2)
 
-    def start(self):
+    def start(self) -> None:
+        """
+        Metoda startuje hru, vypise zakladni postaveni a zobrazi menu
+        """
         print('Game started')
         self.print_board()
         choice = ''
@@ -195,7 +201,10 @@ class ConsoleGame:
                 print("\nI didn't understand that choice.\n")
 
     @staticmethod
-    def display_main_menu():
+    def display_main_menu() -> None:
+        """
+        Metoda zobrazuje zakladni menu hry
+        """
         print('[1] - Play move')
         print('[2] - Display all moves already played')
         print('[3] - Replay the game from the beginning')

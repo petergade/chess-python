@@ -111,13 +111,26 @@ class ConsoleGame:
         s += &#39;|&#39;
         print(s)
 
-    def print_info_message(self, move) -&gt; None:
+    def print_player_points(self) -&gt; None:
+        &#34;&#34;&#34;
+        Metoda vypise bodove hodnoceni hracu
+        :return:
+        &#34;&#34;&#34;
+        white_points, black_points = self.chess_game.get_naive_position_evaluation()
+        print(f&#39;Player points - white: {white_points}, black: {black_points}&#39;)
+
+    def print_info_message(self, move: Move, move_undone: bool = False) -&gt; None:
         &#34;&#34;&#34;
         Metoda vypise, ktery tah byl zahrany a pripadne, zda vzniknul tahem sach, sach mat nebo pat
         :param move: zahrany tah
+        :param move_undone: flag zda jde o normalni tah nebo vraceni tahu
         :return:
         &#34;&#34;&#34;
-        print(f&#39;Move {move} played&#39;)
+        if move_undone:
+            print(f&#39;Move {move} undone&#39;)
+        else:
+            print(f&#39;Move {move} played&#39;)
+
         if self.chess_game.game_result == GameResult.WHITE_WIN or self.chess_game.game_result == GameResult.BLACK_WIN:
             print(f&#39;{bcolors.PASS}Checkmate. GameResult: {self.chess_game.get_result_string()}{bcolors.ENDC}&#39;)
         elif self.chess_game.game_result == GameResult.STALEMATE:
@@ -154,7 +167,9 @@ class ConsoleGame:
                     self.chess_game.do_move(moves[i])
                     self.chess_game.check_end_result()
                     self.print_board()
+                    self.print_player_points()
                     self.print_info_message(move)
+                    print()
                     return
             raise Exception(f&#39;{move} is not legal move&#39;)
         except Exception as err:
@@ -172,9 +187,12 @@ class ConsoleGame:
                              &#39;Ng3&#39;, &#39;f5&#39;, &#39;Kh1&#39;, &#39;f4&#39;, &#39;Qd2&#39;, &#39;Nd4&#39;, &#39;Qd3&#39;, &#39;f3&#39;, &#39;c3&#39;, &#39;Qg2&#39;]
         for move in sample_game_moves:
             self.play_move(move)
-            #time.sleep(0.2)
+            # time.sleep(0.2)
 
-    def start(self):
+    def start(self) -&gt; None:
+        &#34;&#34;&#34;
+        Metoda startuje hru, vypise zakladni postaveni a zobrazi menu
+        &#34;&#34;&#34;
         print(&#39;Game started&#39;)
         self.print_board()
         choice = &#39;&#39;
@@ -191,13 +209,18 @@ class ConsoleGame:
             elif choice == &#39;3&#39;:
                 self.replay_game()
             elif choice == &#39;4&#39;:
-                legal_moves = self.chess_game.generate_legal_moves()
-                print(&#39;,&#39;.join(str(legal_move) for legal_move in legal_moves))
-            elif choice == &#39;5&#39;:
-                self.chess_game.undo_move()
+                move = self.chess_game.undo_move()
+                if move is None:
+                    print(&#39;No move to undone&#39;)
+                    continue
                 self.print_board()
                 self.chess_game.check_end_result()
-                self.print_info_message()
+                self.print_player_points()
+                self.print_info_message(move, move_undone=True)
+                print()
+            elif choice == &#39;5&#39;:
+                legal_moves = self.chess_game.generate_legal_moves()
+                print(&#39;,&#39;.join(str(legal_move) for legal_move in legal_moves))
             elif choice == &#39;6&#39;:
                 self.replay_sample_game()
             elif choice == &#39;q&#39;:
@@ -206,12 +229,15 @@ class ConsoleGame:
                 print(&#34;\nI didn&#39;t understand that choice.\n&#34;)
 
     @staticmethod
-    def display_main_menu():
+    def display_main_menu() -&gt; None:
+        &#34;&#34;&#34;
+        Metoda zobrazuje zakladni menu hry
+        &#34;&#34;&#34;
         print(&#39;[1] - Play move&#39;)
         print(&#39;[2] - Display all moves already played&#39;)
         print(&#39;[3] - Replay the game from the beginning&#39;)
-        # print(&#39;[4] - Print legal moves&#39;)
-        # print(&#39;[5] - Undo move&#39;)
+        print(&#39;[4] - Undo move&#39;)
+        # print(&#39;[5] - Print legal moves&#39;)
         # print(&#39;[6] - Load sample game&#39;)
         print(&#39;[q] - Quit app&#39;)
 
@@ -320,13 +346,26 @@ if __name__ == &#39;__main__&#39;:
         s += &#39;|&#39;
         print(s)
 
-    def print_info_message(self, move) -&gt; None:
+    def print_player_points(self) -&gt; None:
+        &#34;&#34;&#34;
+        Metoda vypise bodove hodnoceni hracu
+        :return:
+        &#34;&#34;&#34;
+        white_points, black_points = self.chess_game.get_naive_position_evaluation()
+        print(f&#39;Player points - white: {white_points}, black: {black_points}&#39;)
+
+    def print_info_message(self, move: Move, move_undone: bool = False) -&gt; None:
         &#34;&#34;&#34;
         Metoda vypise, ktery tah byl zahrany a pripadne, zda vzniknul tahem sach, sach mat nebo pat
         :param move: zahrany tah
+        :param move_undone: flag zda jde o normalni tah nebo vraceni tahu
         :return:
         &#34;&#34;&#34;
-        print(f&#39;Move {move} played&#39;)
+        if move_undone:
+            print(f&#39;Move {move} undone&#39;)
+        else:
+            print(f&#39;Move {move} played&#39;)
+
         if self.chess_game.game_result == GameResult.WHITE_WIN or self.chess_game.game_result == GameResult.BLACK_WIN:
             print(f&#39;{bcolors.PASS}Checkmate. GameResult: {self.chess_game.get_result_string()}{bcolors.ENDC}&#39;)
         elif self.chess_game.game_result == GameResult.STALEMATE:
@@ -363,7 +402,9 @@ if __name__ == &#39;__main__&#39;:
                     self.chess_game.do_move(moves[i])
                     self.chess_game.check_end_result()
                     self.print_board()
+                    self.print_player_points()
                     self.print_info_message(move)
+                    print()
                     return
             raise Exception(f&#39;{move} is not legal move&#39;)
         except Exception as err:
@@ -381,9 +422,12 @@ if __name__ == &#39;__main__&#39;:
                              &#39;Ng3&#39;, &#39;f5&#39;, &#39;Kh1&#39;, &#39;f4&#39;, &#39;Qd2&#39;, &#39;Nd4&#39;, &#39;Qd3&#39;, &#39;f3&#39;, &#39;c3&#39;, &#39;Qg2&#39;]
         for move in sample_game_moves:
             self.play_move(move)
-            #time.sleep(0.2)
+            # time.sleep(0.2)
 
-    def start(self):
+    def start(self) -&gt; None:
+        &#34;&#34;&#34;
+        Metoda startuje hru, vypise zakladni postaveni a zobrazi menu
+        &#34;&#34;&#34;
         print(&#39;Game started&#39;)
         self.print_board()
         choice = &#39;&#39;
@@ -400,13 +444,18 @@ if __name__ == &#39;__main__&#39;:
             elif choice == &#39;3&#39;:
                 self.replay_game()
             elif choice == &#39;4&#39;:
-                legal_moves = self.chess_game.generate_legal_moves()
-                print(&#39;,&#39;.join(str(legal_move) for legal_move in legal_moves))
-            elif choice == &#39;5&#39;:
-                self.chess_game.undo_move()
+                move = self.chess_game.undo_move()
+                if move is None:
+                    print(&#39;No move to undone&#39;)
+                    continue
                 self.print_board()
                 self.chess_game.check_end_result()
-                self.print_info_message()
+                self.print_player_points()
+                self.print_info_message(move, move_undone=True)
+                print()
+            elif choice == &#39;5&#39;:
+                legal_moves = self.chess_game.generate_legal_moves()
+                print(&#39;,&#39;.join(str(legal_move) for legal_move in legal_moves))
             elif choice == &#39;6&#39;:
                 self.replay_sample_game()
             elif choice == &#39;q&#39;:
@@ -415,33 +464,39 @@ if __name__ == &#39;__main__&#39;:
                 print(&#34;\nI didn&#39;t understand that choice.\n&#34;)
 
     @staticmethod
-    def display_main_menu():
+    def display_main_menu() -&gt; None:
+        &#34;&#34;&#34;
+        Metoda zobrazuje zakladni menu hry
+        &#34;&#34;&#34;
         print(&#39;[1] - Play move&#39;)
         print(&#39;[2] - Display all moves already played&#39;)
         print(&#39;[3] - Replay the game from the beginning&#39;)
-        # print(&#39;[4] - Print legal moves&#39;)
-        # print(&#39;[5] - Undo move&#39;)
+        print(&#39;[4] - Undo move&#39;)
+        # print(&#39;[5] - Print legal moves&#39;)
         # print(&#39;[6] - Load sample game&#39;)
         print(&#39;[q] - Quit app&#39;)</code></pre>
 </details>
 <h3>Static methods</h3>
 <dl>
 <dt id="consolegame.ConsoleGame.display_main_menu"><code class="name flex">
-<span>def <span class="ident">display_main_menu</span></span>(<span>)</span>
+<span>def <span class="ident">display_main_menu</span></span>(<span>) ‑> NoneType</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Metoda zobrazuje zakladni menu hry</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@staticmethod
-def display_main_menu():
+def display_main_menu() -&gt; None:
+    &#34;&#34;&#34;
+    Metoda zobrazuje zakladni menu hry
+    &#34;&#34;&#34;
     print(&#39;[1] - Play move&#39;)
     print(&#39;[2] - Display all moves already played&#39;)
     print(&#39;[3] - Replay the game from the beginning&#39;)
-    # print(&#39;[4] - Print legal moves&#39;)
-    # print(&#39;[5] - Undo move&#39;)
+    print(&#39;[4] - Undo move&#39;)
+    # print(&#39;[5] - Print legal moves&#39;)
     # print(&#39;[6] - Load sample game&#39;)
     print(&#39;[q] - Quit app&#39;)</code></pre>
 </details>
@@ -482,7 +537,9 @@ tak metoda vyhodi vyjimku.
                 self.chess_game.do_move(moves[i])
                 self.chess_game.check_end_result()
                 self.print_board()
+                self.print_player_points()
                 self.print_info_message(move)
+                print()
                 return
         raise Exception(f&#39;{move} is not legal move&#39;)
     except Exception as err:
@@ -541,23 +598,29 @@ tak metoda vyhodi vyjimku.
 </details>
 </dd>
 <dt id="consolegame.ConsoleGame.print_info_message"><code class="name flex">
-<span>def <span class="ident">print_info_message</span></span>(<span>self, move) ‑> NoneType</span>
+<span>def <span class="ident">print_info_message</span></span>(<span>self, move: rules.Move, move_undone: bool = False) ‑> NoneType</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Metoda vypise, ktery tah byl zahrany a pripadne, zda vzniknul tahem sach, sach mat nebo pat
 :param move: zahrany tah
+:param move_undone: flag zda jde o normalni tah nebo vraceni tahu
 :return:</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def print_info_message(self, move) -&gt; None:
+<pre><code class="python">def print_info_message(self, move: Move, move_undone: bool = False) -&gt; None:
     &#34;&#34;&#34;
     Metoda vypise, ktery tah byl zahrany a pripadne, zda vzniknul tahem sach, sach mat nebo pat
     :param move: zahrany tah
+    :param move_undone: flag zda jde o normalni tah nebo vraceni tahu
     :return:
     &#34;&#34;&#34;
-    print(f&#39;Move {move} played&#39;)
+    if move_undone:
+        print(f&#39;Move {move} undone&#39;)
+    else:
+        print(f&#39;Move {move} played&#39;)
+
     if self.chess_game.game_result == GameResult.WHITE_WIN or self.chess_game.game_result == GameResult.BLACK_WIN:
         print(f&#39;{bcolors.PASS}Checkmate. GameResult: {self.chess_game.get_result_string()}{bcolors.ENDC}&#39;)
     elif self.chess_game.game_result == GameResult.STALEMATE:
@@ -595,6 +658,25 @@ vypise zelene, prijde mi to trochu prehlednejsi
                 s += f&#39;|{bcolors.PASS}{str(piece).center(5, &#34; &#34;)}{bcolors.ENDC}&#39;
     s += &#39;|&#39;
     print(s)</code></pre>
+</details>
+</dd>
+<dt id="consolegame.ConsoleGame.print_player_points"><code class="name flex">
+<span>def <span class="ident">print_player_points</span></span>(<span>self) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Metoda vypise bodove hodnoceni hracu
+:return:</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def print_player_points(self) -&gt; None:
+    &#34;&#34;&#34;
+    Metoda vypise bodove hodnoceni hracu
+    :return:
+    &#34;&#34;&#34;
+    white_points, black_points = self.chess_game.get_naive_position_evaluation()
+    print(f&#39;Player points - white: {white_points}, black: {black_points}&#39;)</code></pre>
 </details>
 </dd>
 <dt id="consolegame.ConsoleGame.print_rank"><code class="name flex">
@@ -689,15 +771,18 @@ vypise zelene, prijde mi to trochu prehlednejsi
 </details>
 </dd>
 <dt id="consolegame.ConsoleGame.start"><code class="name flex">
-<span>def <span class="ident">start</span></span>(<span>self)</span>
+<span>def <span class="ident">start</span></span>(<span>self) ‑> NoneType</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Metoda startuje hru, vypise zakladni postaveni a zobrazi menu</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def start(self):
+<pre><code class="python">def start(self) -&gt; None:
+    &#34;&#34;&#34;
+    Metoda startuje hru, vypise zakladni postaveni a zobrazi menu
+    &#34;&#34;&#34;
     print(&#39;Game started&#39;)
     self.print_board()
     choice = &#39;&#39;
@@ -714,13 +799,18 @@ vypise zelene, prijde mi to trochu prehlednejsi
         elif choice == &#39;3&#39;:
             self.replay_game()
         elif choice == &#39;4&#39;:
-            legal_moves = self.chess_game.generate_legal_moves()
-            print(&#39;,&#39;.join(str(legal_move) for legal_move in legal_moves))
-        elif choice == &#39;5&#39;:
-            self.chess_game.undo_move()
+            move = self.chess_game.undo_move()
+            if move is None:
+                print(&#39;No move to undone&#39;)
+                continue
             self.print_board()
             self.chess_game.check_end_result()
-            self.print_info_message()
+            self.print_player_points()
+            self.print_info_message(move, move_undone=True)
+            print()
+        elif choice == &#39;5&#39;:
+            legal_moves = self.chess_game.generate_legal_moves()
+            print(&#39;,&#39;.join(str(legal_move) for legal_move in legal_moves))
         elif choice == &#39;6&#39;:
             self.replay_sample_game()
         elif choice == &#39;q&#39;:
@@ -751,6 +841,7 @@ vypise zelene, prijde mi to trochu prehlednejsi
 <li><code><a title="consolegame.ConsoleGame.print_board" href="#consolegame.ConsoleGame.print_board">print_board</a></code></li>
 <li><code><a title="consolegame.ConsoleGame.print_info_message" href="#consolegame.ConsoleGame.print_info_message">print_info_message</a></code></li>
 <li><code><a title="consolegame.ConsoleGame.print_pieces" href="#consolegame.ConsoleGame.print_pieces">print_pieces</a></code></li>
+<li><code><a title="consolegame.ConsoleGame.print_player_points" href="#consolegame.ConsoleGame.print_player_points">print_player_points</a></code></li>
 <li><code><a title="consolegame.ConsoleGame.print_rank" href="#consolegame.ConsoleGame.print_rank">print_rank</a></code></li>
 <li><code><a title="consolegame.ConsoleGame.print_square_colors" href="#consolegame.ConsoleGame.print_square_colors">print_square_colors</a></code></li>
 <li><code><a title="consolegame.ConsoleGame.replay_game" href="#consolegame.ConsoleGame.replay_game">replay_game</a></code></li>
