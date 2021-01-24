@@ -1,5 +1,5 @@
-from typing import List
-from rules import ChessGame, Move, Piece
+from typing import List, Tuple
+from rules import ChessGame, Move, Piece, Color
 import pygame as p
 
 WIDTH = HEIGHT = 512
@@ -7,6 +7,8 @@ DIMENSION = 8
 SQ_SIZE = HEIGHT // DIMENSION
 MAX_FPS = 15
 IMAGES = {}
+WHITE = Color.WHITE
+BLACK = Color.BLACK
 
 
 def load_images() -> None:
@@ -78,7 +80,7 @@ def main() -> None:
             print('En passant square: ' + str(game.enpassant_square_log[-1]) if len(game.enpassant_square_log) > 0 else 'none')
             print('Castling rights: ' + str(game.castling_rights_log[-1]))
             move_made = False
-        draw_game_state(screen, game.board)
+        draw_game_state(screen, game, valid_moves, sq_selected)
         if game.game_result is not None:
             result = game.get_result_string()
             show_result(result, screen)
@@ -86,13 +88,28 @@ def main() -> None:
         p.display.flip()
 
 
-def draw_game_state(screen: p.Surface, board: List[List[Piece]]) -> None:
+def highlight_squares(screen: p.Surface, game: ChessGame, valid_moves: List[Move], sq_selected: Tuple[int, int]) -> None:
+    if sq_selected != ():
+        r, c = sq_selected
+        if game.board[r][c] is not None and (game.board[r][c].color == WHITE if game.white_to_move else BLACK):
+            s = p.Surface((SQ_SIZE, SQ_SIZE))
+            s.set_alpha(100)
+            s.fill(p.Color('blue'))
+            screen.blit(s, (c * SQ_SIZE, r * SQ_SIZE))
+            s.fill(p.Color('yellow'))
+            for move in valid_moves:
+                if move.start_row == r and move.start_col == c:
+                    screen.blit(s, (move.end_col * SQ_SIZE, move.end_row * SQ_SIZE))
+
+
+def draw_game_state(screen: p.Surface, game: ChessGame, valid_moves: List[Move], sq_selected: Tuple) -> None:
     draw_board(screen)
-    draw_pieces(screen, board)
+    highlight_squares(screen, game, valid_moves, sq_selected)
+    draw_pieces(screen, game.board)
 
 
 def draw_board(screen: p.Surface) -> None:
-    colors = [p.Color("white"), p.Color("grey")]
+    colors = [p.Color('white'), p.Color('grey')]
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             color = colors[(r + c) % 2]
@@ -107,5 +124,5 @@ def draw_pieces(screen: p.Surface, board: List[List[Piece]]) -> None:
                 screen.blit(IMAGES[str(piece)], p.Rect(c*SQ_SIZE, r*SQ_SIZE, SQ_SIZE, SQ_SIZE))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
