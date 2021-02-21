@@ -1,5 +1,6 @@
 from typing import List, Tuple
 from rules import ChessGame, Move, Piece, Color
+import engine
 import pygame as p
 
 WIDTH = HEIGHT = 512
@@ -42,48 +43,65 @@ def main() -> None:
     running = True
     sq_selected = ()
     player_clicks = []
+    is_white_human = True
+    is_black_human = False
+    is_game_over = False
     while running:
+        is_human_turn = (game.white_to_move and is_white_human) or (not game.white_to_move and is_black_human)
         for e in p.event.get():
             if e.type == p.QUIT:
                 running = False
             # key handlers
             elif e.type == p.KEYDOWN:
                 if e.key == p.K_z:
+                    is_game_over = False
                     game.undo_move()
                     move_made = True
             elif e.type == p.MOUSEBUTTONDOWN:
-                location = p.mouse.get_pos()
-                col = location[0] // SQ_SIZE
-                row = location[1] // SQ_SIZE
-                if sq_selected == (row, col):
-                    sq_selected = ()
-                    player_clicks = []
-                else:
-                    sq_selected = (row, col)
-                    player_clicks.append(sq_selected)
-                if len(player_clicks) == 2:
-                    if game.board[player_clicks[0][0]][player_clicks[0][1]] is not None:
-                        move = Move(player_clicks[0], player_clicks[1], game.board)
-                        for i in range(len(valid_moves)):
-                            if move == valid_moves[i]:
-                                game.do_move(valid_moves[i])
-                                game.check_end_result()
-                                move_made = True
-                                sq_selected = ()
-                                player_clicks = []
-                    if not move_made:
-                        player_clicks = [sq_selected]
+                if not is_game_over and is_human_turn:
+                    location = p.mouse.get_pos()
+                    col = location[0] // SQ_SIZE
+                    row = location[1] // SQ_SIZE
+                    if sq_selected == (row, col):
+                        sq_selected = ()
+                        player_clicks = []
+                    else:
+                        sq_selected = (row, col)
+                        player_clicks.append(sq_selected)
+                    if len(player_clicks) == 2:
+                        if game.board[player_clicks[0][0]][player_clicks[0][1]] is not None:
+                            move = Move(player_clicks[0], player_clicks[1], game.board)
+                            for i in range(len(valid_moves)):
+                                if move == valid_moves[i]:
+                                    game.do_move(valid_moves[i])
+                                    game.check_end_result()
+                                    move_made = True
+                                    sq_selected = ()
+                                    player_clicks = []
+                        if not move_made:
+                            player_clicks = [sq_selected]
+
+        # AI
+        if not is_game_over and not is_human_turn:
+            best_move = engine.find_best_move_min_max(game, valid_moves)
+            if best_move is None:
+                best_move = engine.find_random_move(valid_moves)
+            game.do_move(best_move)
+            game.check_end_result()
+            move_made = True
+
         if move_made:
             valid_moves = game.generate_legal_moves()
             print('Possible moves: ' + ','.join(str(move) for move in valid_moves))
-            print('Pins: ' + ','.join(str(pin) for pin in game.pins))
-            print('En passant square: ' + str(game.enpassant_square_log[-1]) if len(game.enpassant_square_log) > 0 else 'none')
+            # print('Pins: ' + ','.join(str(pin) for pin in game.pins))
+            # print('En passant square: ' + str(game.enpassant_square_log[-1]) if len(game.enpassant_square_log) > 0 else 'none')
             print('Castling rights: ' + str(game.castling_rights_log[-1]))
             move_made = False
         draw_game_state(screen, game, valid_moves, sq_selected)
         if game.game_result is not None:
             result = game.get_result_string()
             show_result(result, screen)
+            is_game_over = True
         clock.tick(MAX_FPS)
         p.display.flip()
 

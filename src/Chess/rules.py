@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Dict
 from abc import ABC, abstractmethod
 import enum
 import re
@@ -738,6 +738,7 @@ class ChessGame:
 
         # pravo na rosadu
         self.update_castling_rights(move)
+        print(f'Do move: {len(self.castling_rights_log)}')
 
     def undo_move(self) -> Union[Move, None]:
         """
@@ -771,7 +772,7 @@ class ChessGame:
                 self.board[move.end_row][move.end_col - 2] = self.board[move.end_row][move.end_col + 1]
                 self.board[move.end_row][move.end_col + 1] = None
         self.game_result = None
-
+        print(f'Undo move: {len(self.castling_rights_log)}')
         return move
 
     def change_turn(self) -> None:
@@ -811,6 +812,16 @@ class ChessGame:
                                                                        current_castling_rights.bk,
                                                                        current_castling_rights.wq,
                                                                        current_castling_rights.bq))
+                    else:
+                        self.castling_rights_log.append(CastlingRights(current_castling_rights.wk,
+                                                                       current_castling_rights.bk,
+                                                                       current_castling_rights.wq,
+                                                                       current_castling_rights.bq))
+                else:
+                    self.castling_rights_log.append(CastlingRights(current_castling_rights.wk,
+                                                                   current_castling_rights.bk,
+                                                                   current_castling_rights.wq,
+                                                                   current_castling_rights.bq))
             else:
                 if move.start_row == 0:
                     if move.start_col == 0:  # leva vez - mazeme pravo cerneho na queenside rosadu
@@ -823,6 +834,16 @@ class ChessGame:
                                                                        False,
                                                                        current_castling_rights.wq,
                                                                        current_castling_rights.bq))
+                    else:
+                        self.castling_rights_log.append(CastlingRights(current_castling_rights.wk,
+                                                                       current_castling_rights.bk,
+                                                                       current_castling_rights.wq,
+                                                                       current_castling_rights.bq))
+                else:
+                    self.castling_rights_log.append(CastlingRights(current_castling_rights.wk,
+                                                                   current_castling_rights.bk,
+                                                                   current_castling_rights.wq,
+                                                                   current_castling_rights.bq))
         else:
             self.castling_rights_log.append(CastlingRights(current_castling_rights.wk,
                                                            current_castling_rights.bk,
@@ -1041,27 +1062,34 @@ class ChessGame:
         else:
             return None
 
-    def get_naive_position_evaluation(self) -> Tuple[int, int]:
-        """
-        Metoda spocita pro kazdeho hrace hodnotu jeho figur. (pesec = 1, strelec = jezdec = 3, vez = 5, dama = 9)
-        :return: hodnoceni obou hracu
-        """
-        white_points: int = 0
-        black_points: int = 0
-        for r in range(len(self.board)):
-            for c in range(len(self.board[r])):
-                piece = self.board[r][c]
-                if piece is not None:
-                    if piece.color == WHITE:
-                        white_points += get_piece_type_value(piece.piece_type)
-                    else:
-                        black_points += get_piece_type_value(piece.piece_type)
-        return white_points, black_points
-
     # TODO: dodelat
+
     def is_insufficient_material(self) -> bool:
         """
         Metoda zjistuje, zda je na sachovnici dostatek materialu pro vyhru jednoho z hracu. Zatim neni implementovano
         :return: True/False hodnota, zda je na sachovnici dostatek materialu pro vyhru jednoho z hracu
         """
-        return False
+        white_pieces: Dict[PieceType, List[Piece]] = {}
+        black_pieces: Dict[PieceType, List[Piece]] = {}
+        for r in range(len(self.board)):
+            for c in range(len(self.board[r])):
+                piece = self.board[r][c]
+                if piece is not None:
+                    if piece.color == WHITE:
+                        if piece.piece_type in white_pieces.keys():
+                            white_pieces[piece.piece_type].append(piece)
+                        else:
+                            white_pieces[piece.piece_type] = [piece]
+                    else:
+                        if piece.piece_type in black_pieces.keys():
+                            black_pieces[piece.piece_type].append(piece)
+                        else:
+                            black_pieces[piece.piece_type] = [piece]
+
+        if QUEEN in white_pieces.keys() or QUEEN in black_pieces.keys():
+            return False
+        if ROOK in white_pieces.keys() or ROOK in black_pieces.keys():
+            return False
+        if PAWN in white_pieces.keys() or PAWN in black_pieces.keys():
+            return False
+        return True
